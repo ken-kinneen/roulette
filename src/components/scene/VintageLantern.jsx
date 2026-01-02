@@ -6,7 +6,7 @@ import { cloneWithSharedMaterials } from '../../utils/modelUtils';
 const lanternMaterialCache = new Map();
 
 export function VintageLantern({ position = [0, 0, 0], rotation = [0, 0, 0] }) {
-  const { scene } = useGLTF('/src/assets/models/Meshy_AI_Vintage_Lantern_Sconc_0102170712_texture.glb');
+  const { scene } = useGLTF('/Meshy_AI_Vintage_Lantern_Sconc_0102170712_texture.glb');
 
   // Clone with shared materials to reduce texture units
   const clonedScene = useMemo(() => {
@@ -45,5 +45,5 @@ export function VintageLantern({ position = [0, 0, 0], rotation = [0, 0, 0] }) {
 }
 
 // Preload the model
-useGLTF.preload('/src/assets/models/Meshy_AI_Vintage_Lantern_Sconc_0102170712_texture.glb');
+useGLTF.preload('/Meshy_AI_Vintage_Lantern_Sconc_0102170712_texture.glb');
 

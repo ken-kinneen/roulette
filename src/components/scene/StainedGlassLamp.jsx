@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 
 export function StainedGlassLamp() {
-  const { scene } = useGLTF('/src/assets/models/Meshy_AI_Stained_Glass_Radianc_0102170236_texture.glb');
+  const { scene } = useGLTF('/Meshy_AI_Stained_Glass_Radianc_0102170236_texture.glb');
 
   // Clone and prepare the scene
   const clonedScene = useMemo(() => {
@@ -48,5 +48,5 @@ export function StainedGlassLamp() {
 }
 
 // Preload the model
-useGLTF.preload('/src/assets/models/Meshy_AI_Stained_Glass_Radianc_0102170236_texture.glb');
+useGLTF.preload('/Meshy_AI_Stained_Glass_Radianc_0102170236_texture.glb');
 
