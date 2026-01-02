@@ -72,26 +72,22 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   // Play appropriate animations based on game state
   useEffect(() => {
+    console.log("🚀 ~ Character ~ actions:", actions);
     if (!actions || Object.keys(actions).length === 0) return;
 
+
+    const sitAndWait = "Running";
+    const running = "Chair_Sit_Idle_M";
+    const sitAndDoze = "Sit_Cross_Legged"; 
     // Determine which animation to play
-    let animationName = "Sit_and_Doze_Off";
+    let animationName = sitAndWait
     
-    /* if (isDead) {
+     console.log("🚀 ~ Character ~ isDead:", isDead);
+     if (isDead) {
       // Look for death/die animation - or use doze off as fallback
-      animationName = Object.keys(actions).find(key => 
-        key.toLowerCase().includes('death') || 
-        key.toLowerCase().includes('die') ||
-        key.toLowerCase().includes('dead')
-      ) || 'Sit_and_Doze_Off';
-    } else if (isHoldingGun) {
-      // Use sitting answering questions for holding gun state
-      animationName = 'Sitting_Answering_Questions';
-    } else {
-      // Use Chair_Sit_Idle_M for idle sitting
-      animationName = 'Chair_Sit_Idle_M';
-    }
- */
+      animationName = sitAndDoze
+    } 
+  
     // If we found an animation and it's different from current, play it
     if (animationName && actions[animationName]) {
       // Stop ALL animations first
