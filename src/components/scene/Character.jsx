@@ -148,7 +148,7 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   return (
     <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
       {/* Character model - positioned to sit on chair seat level */}
-      <group position={[0, 0.2, 0.2]} scale={0.8}>
+      <group position={[0, 0.2, 0.1]} scale={0.8}>
         <primitive object={clonedScene} />
       </group>
 
