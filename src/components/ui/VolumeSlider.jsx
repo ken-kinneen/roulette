@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { setMusicVolume } from '../../utils/music';
+import { setAmbienceVolume } from '../../utils/ambience';
 import './VolumeSlider.css';
 
 export function VolumeSlider() {
@@ -9,7 +10,9 @@ export function VolumeSlider() {
   const setVolume = useGameStore((state) => state.setVolume);
 
   useEffect(() => {
-    setMusicVolume(isMuted ? 0 : volume / 100);
+    const effectiveVolume = isMuted ? 0 : volume / 100;
+    setMusicVolume(effectiveVolume);
+    setAmbienceVolume(effectiveVolume * 0.4); // Ambience at 40% of music volume
   }, [volume, isMuted]);
 
   const handleVolumeChange = (e) => {

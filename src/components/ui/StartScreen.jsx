@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
 import { playMusic } from '../../utils/music';
+import { startAmbience } from '../../utils/ambience';
 import './StartScreen.css';
 
 function RevolverModel() {
@@ -52,6 +53,7 @@ export function StartScreen() {
 
   const handleStart = () => {
     playMusic(); // Start background music on user interaction
+    // startAmbience(0.4); // Start ambient bunker sounds - DISABLED
     startGame();
   };
 

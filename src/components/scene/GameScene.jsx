@@ -8,6 +8,8 @@ import { Revolver } from './Revolver';
 import { WhiskeyBottle } from './WhiskeyBottle';
 import { Ashtray } from './Ashtray';
 import { CashBowl } from './CashBowl';
+import { StainedGlassLamp } from './StainedGlassLamp';
+import { VintageLantern } from './VintageLantern';
 import { Lighting } from './Lighting';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
@@ -155,15 +157,20 @@ export function GameScene() {
     <Canvas shadows style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
       <CameraController />
 
-      <color attach="background" args={['#0a0908']} />
-      <fog attach="fog" args={['#0a0908', 5, 15]} />
-
+ 
       <Lighting />
       <Room />
       <Table />
       <WhiskeyBottle />
       <Ashtray scale={5} />
       <CashBowl />
+      
+      {/* Stained Glass Lamp on table */}
+      <StainedGlassLamp />
+      
+      {/* Vintage Lanterns on walls */}
+      <VintageLantern position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} />
+      <VintageLantern position={[6.5, 2, 0]} rotation={[0, -Math.PI / 2, 0]} />
 
       {/* Player (you) - facing the table from the front */}
       <Character position={[0, 0, 1.2]} rotation={[0, Math.PI, 0]} isPlayer />

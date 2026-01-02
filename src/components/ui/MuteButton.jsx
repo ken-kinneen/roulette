@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { setMusicVolume } from '../../utils/music';
+import { setAmbienceVolume } from '../../utils/ambience';
 import './MuteButton.css';
 
 export function MuteButton() {
@@ -9,7 +10,9 @@ export function MuteButton() {
   const setMuted = useGameStore((state) => state.setMuted);
 
   useEffect(() => {
-    setMusicVolume(isMuted ? 0 : volume / 100);
+    const effectiveVolume = isMuted ? 0 : volume / 100;
+    setMusicVolume(effectiveVolume);
+    setAmbienceVolume(effectiveVolume * 0.4); // Ambience at 40% of music volume
   }, [isMuted, volume]);
 
   const toggleMute = () => {

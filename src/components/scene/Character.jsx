@@ -4,6 +4,10 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { Chair } from './Chair';
+
+// Global material cache for all character instances
+const characterMaterialCache = new Map();
 
 export function Character({ position, rotation = [0, 0, 0], isPlayer = false, isAI = false }) {
   const groupRef = useRef();
@@ -21,11 +25,30 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     // Use SkeletonUtils.clone for proper cloning of animated models with skeletons
     const clone = SkeletonUtils.clone(scene);
     
-    // Enable shadows
+    // Share materials between character instances to reduce texture units
     clone.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        
+        // Share materials
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material = child.material.map(mat => {
+              const cacheKey = mat.uuid;
+              if (!characterMaterialCache.has(cacheKey)) {
+                characterMaterialCache.set(cacheKey, mat);
+              }
+              return characterMaterialCache.get(cacheKey);
+            });
+          } else {
+            const cacheKey = child.material.uuid;
+            if (!characterMaterialCache.has(cacheKey)) {
+              characterMaterialCache.set(cacheKey, child.material);
+            }
+            child.material = characterMaterialCache.get(cacheKey);
+          }
+        }
       }
     });
     
@@ -133,35 +156,8 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
         <primitive object={clonedScene} />
       </group>
 
-      {/* Chair back */}
-      <mesh position={[0, 0.45, -0.3]} castShadow receiveShadow>
-        <boxGeometry args={[0.6, 0.8, 0.1]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
-
-      {/* Chair seat - at y=0.4 */}
-      <mesh position={[0, 0.4, -0.05]} castShadow receiveShadow>
-        <boxGeometry args={[0.5, 0.1, 0.5]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
-
-      {/* Chair legs - height 0.4, positioned so bottom is at y=0 */}
-      <mesh position={[-0.2, 0.2, 0.15]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
-      <mesh position={[0.2, 0.2, 0.15]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
-      <mesh position={[-0.2, 0.2, -0.25]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
-      <mesh position={[0.2, 0.2, -0.25]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-        <meshStandardMaterial color="#3d2817" roughness={0.8} />
-      </mesh>
+      {/* Chair - using the new GLB model */}
+      <Chair position={[0, 0, 0]} scale={0.6} />
     </group>
   );
 }
