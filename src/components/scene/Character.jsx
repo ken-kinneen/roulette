@@ -56,7 +56,29 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   }, [scene]);
 
   // Use animations with the cloned scene directly (not a wrapper group)
-  const { actions } = useAnimations(animations, clonedScene);
+  const { actions, mixer } = useAnimations(animations, clonedScene);
+
+  // Create trimmed death animation subclip
+  useEffect(() => {
+    if (!animations || animations.length === 0 || !mixer) return;
+    
+    const sitAndWaitClip = animations.find(clip => clip.name === "Running");
+    if (sitAndWaitClip && !mixer._actions.find(action => action._clip.name === "DeathTrimmed")) {
+      // Create a subclip that ends early (adjust endFrame as needed)
+      // Original animation duration divided by frames to find the right cutoff point
+      // Typically you want to cut it at around 50-70% of the original duration
+      const originalDuration = sitAndWaitClip.duration;
+      const trimmedDuration = originalDuration * 0.2; // Adjust this value (0.3 to 0.7) to control when it stops
+      
+      THREE.AnimationUtils.subclip(
+        sitAndWaitClip,
+        'DeathTrimmed',
+        0,
+        trimmedDuration * 30, // Assuming 30 fps, adjust if different
+        30
+      );
+    }
+  }, [animations, mixer]);
 
   // Death states
   const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
@@ -77,15 +99,15 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
 
     const sitAndWait = "Running";
-    const running = "Chair_Sit_Idle_M";
-    const sitAndDoze = "Sit_Cross_Legged"; 
+    const deathTrimmed = "DeathTrimmed";
+    const running = "Chair_Sit_Idle_M"; 
     // Determine which animation to play
     let animationName = running
     
      console.log("🚀 ~ Character ~ isDead:", isDead);
      if (isDead) {
-      // Look for death/die animation - or use doze off as fallback
-      animationName = sitAndWait
+      // Use trimmed death animation if available, otherwise fallback to full animation
+      animationName = actions[deathTrimmed] ? deathTrimmed : sitAndWait;
     } 
   
     // If we found an animation and it's different from current, play it
