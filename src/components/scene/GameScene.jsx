@@ -4,6 +4,7 @@ import { Room } from './Room';
 import { Table } from './Table';
 import { Character } from './Character';
 import { Revolver } from './Revolver';
+import { WhiskeyBottle } from './WhiskeyBottle';
 import { Lighting } from './Lighting';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
@@ -28,6 +29,7 @@ export function GameScene() {
       <Lighting />
       <Room />
       <Table />
+      <WhiskeyBottle />
 
       {/* Player (you) - facing the table from the front */}
       <Character position={[0, 0, 1.8]} rotation={[0, Math.PI, 0]} isPlayer />
