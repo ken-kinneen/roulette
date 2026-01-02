@@ -1,16 +1,39 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
+import * as THREE from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 
 export function Character({ position, rotation = [0, 0, 0], isPlayer = false, isAI = false }) {
   const groupRef = useRef();
-  const headRef = useRef();
-  const rightArmRef = useRef();
   const gamePhase = useGameStore((state) => state.gamePhase);
   const currentTurn = useGameStore((state) => state.currentTurn);
 
-  const bodyColor = isPlayer ? '#4a6b8a' : '#8a4a4a';
-  const headColor = '#d4b896';
+  // Load the character model and animations
+  const { scene } = useGLTF('/src/assets/models/russian/Meshy_AI_Character_output.glb');
+  const { animations } = useGLTF('/src/assets/models/russian/Meshy_AI_Meshy_Merged_Animations.glb');
+  
+  // Clone the scene using SkeletonUtils for proper skinned mesh cloning
+  const clonedScene = useMemo(() => {
+    if (!scene) return null;
+    
+    // Use SkeletonUtils.clone for proper cloning of animated models with skeletons
+    const clone = SkeletonUtils.clone(scene);
+    
+    // Enable shadows
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    
+    return clone;
+  }, [scene]);
+
+  // Use animations with the cloned scene directly (not a wrapper group)
+  const { actions } = useAnimations(animations, clonedScene);
 
   // Death states
   const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
@@ -21,7 +44,68 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   // Animation state
   const deathProgress = useRef(0);
-  const breathOffset = useRef(Math.random() * Math.PI * 2);
+  const breathOffset = useMemo(() => (isPlayer ? 0 : Math.PI), [isPlayer]);
+  const currentAnimation = useRef(null);
+
+  // Play appropriate animations based on game state
+  useEffect(() => {
+    if (!actions || Object.keys(actions).length === 0) {
+      console.log('No actions available yet');
+      return;
+    }
+
+    console.log('Available animations:', Object.keys(actions));
+    console.log('Game state - isDead:', isDead, 'isHoldingGun:', isHoldingGun, 'gamePhase:', gamePhase, 'currentTurn:', currentTurn);
+
+    // Determine which animation to play
+    let animationName = null;
+    
+    if (isDead) {
+      // Look for death/die animation - or use doze off as fallback
+      animationName = Object.keys(actions).find(key => 
+        key.toLowerCase().includes('death') || 
+        key.toLowerCase().includes('die') ||
+        key.toLowerCase().includes('dead')
+      ) || 'Sit_and_Doze_Off';
+    } else if (isHoldingGun) {
+      // Use sitting answering questions for holding gun state
+      animationName ="Sit_Cross_Legged";
+    } else {
+      // Use Chair_Sit_Idle_M for idle sitting
+      animationName = "Sit_Cross_Legged";
+    }
+
+    console.log('Selected animation:', animationName, 'Current animation:', currentAnimation.current);
+
+    // If we found an animation and it's different from current, play it
+    if (animationName && actions[animationName]) {
+      // Stop ALL animations first
+      Object.values(actions).forEach(action => {
+        if (action.isRunning()) {
+          action.stop();
+        }
+      });
+
+      // Play the new animation
+      const action = actions[animationName];
+      
+      // Configure and play animation
+      if (isDead) {
+        action.setLoop(THREE.LoopOnce, 1);
+      } else {
+        action.setLoop(THREE.LoopRepeat);
+      }
+      
+      action.reset().play();
+      
+      console.log('✅ Playing animation:', animationName);
+
+      currentAnimation.current = animationName;
+    } else {
+      console.log('⚠️ Animation not found:', animationName);
+    }
+
+  }, [actions, isDead, isHoldingGun, gamePhase, currentTurn]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -33,9 +117,9 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       const easeOut = 1 - Math.pow(1 - t, 3);
 
       // Fall direction based on which character
-      const fallRotationX = isPlayer ? 0.8 : -0.8;
-      const fallRotationZ = isPlayer ? 0.4 : -0.4;
-      const fallY = -0.5;
+      const fallRotationX = isPlayer ? 0.3 : -0.3;
+      const fallRotationZ = isPlayer ? 0.2 : -0.2;
+      const fallY = -0.3;
 
       groupRef.current.rotation.x = fallRotationX * easeOut;
       groupRef.current.rotation.z = fallRotationZ * easeOut;
@@ -45,86 +129,55 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       deathProgress.current = 0;
       
       // Subtle breathing animation
-      const breathe = Math.sin(state.clock.elapsedTime * 1.5 + breathOffset.current) * 0.015;
+      const breathe = Math.sin(state.clock.elapsedTime * 1.5 + breathOffset) * 0.01;
       groupRef.current.position.y = position[1] + breathe;
       groupRef.current.rotation.x = 0;
       groupRef.current.rotation.z = 0;
     }
-
-    // Right arm animation for holding gun
-    if (rightArmRef.current) {
-      if (isHoldingGun && !isDead) {
-        // Raise arm to hold gun at head - bent at elbow, hand near temple
-        const targetRotX = -1.4; // Bent up
-        const targetRotZ = -2; // Bent inward toward head
-        const targetPosX = 0.3;
-        const targetPosY = 0.9;
-        const targetPosZ = 0.05;
-
-        rightArmRef.current.rotation.x += (targetRotX - rightArmRef.current.rotation.x) * 0.1;
-        rightArmRef.current.rotation.z += (targetRotZ - rightArmRef.current.rotation.z) * 0.1;
-        rightArmRef.current.position.x += (targetPosX - rightArmRef.current.position.x) * 0.1;
-        rightArmRef.current.position.y += (targetPosY - rightArmRef.current.position.y) * 0.1;
-        rightArmRef.current.position.z += (targetPosZ - rightArmRef.current.position.z) * 0.1;
-      } else {
-        // Resting position
-        const targetRotX = 0.3;
-        const targetRotZ = -0.2;
-        const targetPosX = 0.35;
-        const targetPosY = 0.5;
-        const targetPosZ = 0.1;
-
-        rightArmRef.current.rotation.x += (targetRotX - rightArmRef.current.rotation.x) * 0.1;
-        rightArmRef.current.rotation.z += (targetRotZ - rightArmRef.current.rotation.z) * 0.1;
-        rightArmRef.current.position.x += (targetPosX - rightArmRef.current.position.x) * 0.1;
-        rightArmRef.current.position.y += (targetPosY - rightArmRef.current.position.y) * 0.1;
-        rightArmRef.current.position.z += (targetPosZ - rightArmRef.current.position.z) * 0.1;
-      }
-    }
   });
+
+  if (!clonedScene) return null;
 
   return (
     <group ref={groupRef} position={position} rotation={rotation}>
-      {/* Body (torso) */}
-      <mesh position={[0, 0.6, 0]} castShadow>
-        <capsuleGeometry args={[0.25, 0.6, 4, 8]} />
-        <meshStandardMaterial 
-          color={bodyColor} 
-          roughness={0.7}
-          emissive={isHoldingGun ? bodyColor : '#000000'}
-          emissiveIntensity={isHoldingGun ? 0.15 : 0}
-        />
-      </mesh>
-
-      {/* Head */}
-      <mesh ref={headRef} position={[0, 1.3, 0]} castShadow>
-        <sphereGeometry args={[0.2, 8, 8]} />
-        <meshStandardMaterial color={headColor} roughness={0.6} />
-      </mesh>
-
-      {/* Left Arm */}
-      <mesh position={[-0.35, 1, 0.1]} rotation={[0.3, 0, 0.2]} castShadow>
-        <capsuleGeometry args={[0.08, 0.4, 4, 8]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.7} />
-      </mesh>
-
-      {/* Right Arm - animates for gun holding */}
-      <mesh ref={rightArmRef} position={[0.35, 0.5, 0.1]} rotation={[0.3, 0, -0.2]} castShadow>
-        <capsuleGeometry args={[0.08, 0.4, 4, 8]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.7} />
-      </mesh>
+      {/* Character model - positioned to sit on chair seat level */}
+      <group position={[0, 0, 0]} scale={0.8}>
+        <primitive object={clonedScene} />
+      </group>
 
       {/* Chair back */}
-      <mesh position={[0, 0.8, -0.4]} castShadow>
+      <mesh position={[0, 0.5, -0.3]} castShadow receiveShadow>
         <boxGeometry args={[0.6, 0.8, 0.1]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
 
       {/* Chair seat */}
-      <mesh position={[0, 0.1, -0.1]} castShadow>
+      <mesh position={[0, 0, -0.05]} castShadow receiveShadow>
         <boxGeometry args={[0.5, 0.1, 0.5]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.8} />
+      </mesh>
+
+      {/* Chair legs */}
+      <mesh position={[-0.2, -0.3, 0.15]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.2, -0.3, 0.15]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.8} />
+      </mesh>
+      <mesh position={[-0.2, -0.3, -0.25]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+        <meshStandardMaterial color="#3d2817" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.2, -0.3, -0.25]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
     </group>
   );
 }
+
+// Preload the models
+useGLTF.preload('/src/assets/models/russian/Meshy_AI_Character_output.glb');
+useGLTF.preload('/src/assets/models/russian/Meshy_AI_Meshy_Merged_Animations.glb');

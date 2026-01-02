@@ -62,11 +62,11 @@ export function GameHUD() {
     <div className="game-hud">
       {/* Top bar */}
       <div className="hud-top">
-        <div className="hud-stat">
+        <div className="hud-stat level-stat">
           <span className="stat-label">LEVEL</span>
           <span className="stat-value">{level}</span>
         </div>
-        <div className="hud-stat">
+        <div className="hud-stat lives-stat">
           <span className="stat-label">LIVES</span>
           <span className="stat-value hearts">{renderHearts()}</span>
         </div>

@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useGameStore } from '../../stores/gameStore';
 import { setMusicVolume } from '../../utils/music';
 import './MuteButton.css';
 
 export function MuteButton() {
-  const [isMuted, setIsMuted] = useState(false);
+  const isMuted = useGameStore((state) => state.isMuted);
+  const volume = useGameStore((state) => state.volume);
+  const setMuted = useGameStore((state) => state.setMuted);
 
   useEffect(() => {
-    setMusicVolume(isMuted ? 0 : 0.3);
-  }, [isMuted]);
+    setMusicVolume(isMuted ? 0 : volume / 100);
+  }, [isMuted, volume]);
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    setMuted(!isMuted);
   };
 
   return (

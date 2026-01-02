@@ -28,6 +28,7 @@ export function Revolver() {
   const isPlayer = currentTurn === 'player';
   const playerZ = isPlayer ? 1.45 : -1.8;
   const facingRotation =  4.3;
+  const characterHeightOffset = 1.1; // Character raised position
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -60,7 +61,7 @@ export function Revolver() {
       ref={groupRef} 
       position={[
         0.3,  // To the right side (in hand)
-        1.35, // Head height
+        1.35 + characterHeightOffset, // Head height adjusted for character position
         playerZ + (isPlayer ? 0.25 : -0.25) // Slightly forward of character
       ]}
       rotation={[

@@ -14,6 +14,10 @@ export const useGameStore = create((set, get) => ({
   shotHistory: [],
   highestLevel: 1,
   isAnimating: false,
+  
+  // Audio state
+  volume: 30, // 0-100
+  isMuted: false,
 
   // Computed values
   getCurrentOdds: () => {
@@ -146,4 +150,8 @@ export const useGameStore = create((set, get) => ({
     shotHistory: [],
     isAnimating: false,
   }),
+  
+  // Audio actions
+  setVolume: (volume) => set({ volume }),
+  setMuted: (isMuted) => set({ isMuted }),
 }));

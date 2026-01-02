@@ -4,6 +4,7 @@ import { GameHUD } from './components/ui/GameHUD';
 import { GameOverScreen } from './components/ui/GameOverScreen';
 import { ScreenFlashOverlay } from './components/ui/ScreenFlashOverlay';
 import { MuteButton } from './components/ui/MuteButton';
+import { VolumeSlider } from './components/ui/VolumeSlider';
 import './index.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
       <GameHUD />
       <GameOverScreen />
       <MuteButton />
+      <VolumeSlider />
     </div>
   );
 }
