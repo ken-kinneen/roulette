@@ -58,22 +58,22 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     console.log('Game state - isDead:', isDead, 'isHoldingGun:', isHoldingGun, 'gamePhase:', gamePhase, 'currentTurn:', currentTurn);
 
     // Determine which animation to play
-    let animationName = null;
+    let animationName = "Walking";
     
-    if (isDead) {
+  /*   if (isDead) {
       // Look for death/die animation - or use doze off as fallback
       animationName = Object.keys(actions).find(key => 
         key.toLowerCase().includes('death') || 
         key.toLowerCase().includes('die') ||
         key.toLowerCase().includes('dead')
-      ) || 'Sit_and_Doze_Off';
+      ) || animationName;
     } else if (isHoldingGun) {
       // Use sitting answering questions for holding gun state
-      animationName ="Sit_Cross_Legged";
+      animationName ="Sitting_Answering_Questions";
     } else {
       // Use Chair_Sit_Idle_M for idle sitting
-      animationName = "Sit_Cross_Legged";
-    }
+      animationName = "Sitting_Answering_Questions";
+    } */
 
     console.log('Selected animation:', animationName, 'Current animation:', currentAnimation.current);
 
@@ -141,7 +141,7 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   return (
     <group ref={groupRef} position={position} rotation={rotation}>
       {/* Character model - positioned to sit on chair seat level */}
-      <group position={[0, 0, 0]} scale={0.8}>
+      <group position={[0, -0.22, 0]} scale={1.2}>
         <primitive object={clonedScene} />
       </group>
 
