@@ -80,12 +80,12 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     const running = "Chair_Sit_Idle_M";
     const sitAndDoze = "Sit_Cross_Legged"; 
     // Determine which animation to play
-    let animationName = sitAndWait
+    let animationName = running
     
      console.log("🚀 ~ Character ~ isDead:", isDead);
      if (isDead) {
       // Look for death/die animation - or use doze off as fallback
-      animationName = sitAndDoze
+      animationName = sitAndWait
     } 
   
     // If we found an animation and it's different from current, play it
