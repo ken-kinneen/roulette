@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 
 export function WhiskeyBottle() {
-  const { scene } = useGLTF('/src/assets/whiskey.glb');
+  const { scene } = useGLTF('/whiskey.glb');
 
   // Clone and prepare the scene
   const clonedScene = useMemo(() => {
@@ -39,5 +39,5 @@ export function WhiskeyBottle() {
 }
 
 // Preload the model
-useGLTF.preload('/src/assets/whiskey.glb');
+useGLTF.preload('/whiskey.glb');
 
