@@ -1,0 +1,125 @@
+.start-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 9, 8, 0.95) 0%,
+    rgba(10, 9, 8, 0.85) 100%
+  );
+  z-index: 100;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.start-content {
+  text-align: center;
+  color: #d4c4a8;
+}
+
+.game-title {
+  font-family: 'Courier New', monospace;
+  font-size: 4rem;
+  font-weight: 700;
+  letter-spacing: 1.2rem;
+  margin: 0;
+  line-height: 1.1;
+  text-shadow: 0 0 30px rgba(180, 120, 80, 0.3);
+}
+
+.title-accent {
+  color: #c45c45;
+  text-shadow: 0 0 40px rgba(196, 92, 69, 0.5);
+}
+
+.revolver-icon {
+  width: 120px;
+  height: 80px;
+  margin: 2rem auto;
+  color: #8a7a6a;
+  opacity: 0.6;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.instructions {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #8a7a6a;
+  margin: 2rem 0;
+  font-style: italic;
+}
+
+.start-button {
+  background: transparent;
+  border: 2px solid #c45c45;
+  color: #c45c45;
+  padding: 1rem 2.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.3rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.start-button:hover {
+  background: rgba(196, 92, 69, 0.15);
+  box-shadow: 0 0 30px rgba(196, 92, 69, 0.3);
+  transform: scale(1.02);
+}
+
+.start-button:active {
+  transform: scale(0.98);
+}
+
+.button-underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #c45c45;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.start-button:hover .button-underline {
+  transform: scaleX(1);
+}
+
+.controls-hint {
+  margin-top: 3rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2rem;
+  color: #5a5045;
+}
+

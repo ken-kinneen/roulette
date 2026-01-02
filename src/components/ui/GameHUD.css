@@ -1,0 +1,329 @@
+.game-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  font-family: 'Courier New', monospace;
+}
+
+.game-hud > * {
+  pointer-events: auto;
+}
+
+/* Top bar */
+.hud-top {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.hud-stat {
+  background: rgba(10, 9, 8, 0.8);
+  border: 1px solid rgba(138, 122, 106, 0.3);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.15rem;
+  color: #6a5a4a;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #d4c4a8;
+}
+
+.hearts {
+  color: #c45c45;
+  font-size: 1.4rem;
+}
+
+.heart {
+  margin: 0 2px;
+  text-shadow: 0 0 10px rgba(196, 92, 69, 0.5);
+}
+
+/* Chamber display */
+.chamber-display {
+  position: absolute;
+  bottom: 120px;
+  left: 20px;
+  background: rgba(10, 9, 8, 0.85);
+  border: 1px solid rgba(138, 122, 106, 0.3);
+  padding: 15px 20px;
+}
+
+.chamber-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15rem;
+  color: #6a5a4a;
+  margin-bottom: 10px;
+}
+
+.chambers {
+  display: flex;
+  gap: 8px;
+}
+
+.chamber {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #5a5045;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.chamber.fired {
+  border-color: #3a3530;
+  background: rgba(30, 25, 20, 0.5);
+}
+
+.chamber-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8a7a6a;
+}
+
+.chamber.fired .chamber-inner {
+  background: #3a3530;
+}
+
+.shots-count {
+  font-size: 0.6rem;
+  color: #5a5045;
+  margin-top: 8px;
+  letter-spacing: 0.1rem;
+}
+
+/* Odds display */
+.odds-display {
+  position: absolute;
+  bottom: 120px;
+  right: 20px;
+  background: rgba(10, 9, 8, 0.85);
+  border: 1px solid rgba(138, 122, 106, 0.3);
+  padding: 15px 25px;
+  text-align: center;
+}
+
+.odds-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15rem;
+  color: #6a5a4a;
+  margin-bottom: 5px;
+}
+
+.odds-value {
+  font-size: 2rem;
+  font-weight: 700;
+  transition: color 0.3s ease;
+}
+
+.odds-fraction {
+  font-size: 0.7rem;
+  color: #5a5045;
+  margin-top: 5px;
+}
+
+/* Turn section */
+.turn-section {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.turn-indicator {
+  font-size: 0.8rem;
+  letter-spacing: 0.2rem;
+  margin-bottom: 15px;
+  padding: 8px 20px;
+  background: rgba(10, 9, 8, 0.8);
+  border: 1px solid rgba(138, 122, 106, 0.3);
+}
+
+.player-turn {
+  color: #8a9a7a;
+  border-color: rgba(138, 154, 122, 0.3);
+}
+
+.ai-turn {
+  color: #c4a145;
+  border-color: rgba(196, 161, 69, 0.3);
+}
+
+.ai-thinking {
+  margin-right: 5px;
+}
+
+.loading-dots span {
+  animation: blink 1.4s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 60%, 100% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0;
+  }
+}
+
+/* Trigger button */
+.trigger-button {
+  background: transparent;
+  border: 2px solid #c45c45;
+  color: #c45c45;
+  padding: 15px 40px;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.3rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trigger-button:hover {
+  background: rgba(196, 92, 69, 0.2);
+  box-shadow: 0 0 30px rgba(196, 92, 69, 0.4);
+  transform: scale(1.05);
+}
+
+.trigger-button:active {
+  transform: scale(0.95);
+}
+
+.trigger-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Death notice */
+.death-notice {
+  background: rgba(10, 9, 8, 0.9);
+  border: 2px solid #c45c45;
+  padding: 25px 40px;
+  animation: shakeIn 0.5s ease-out;
+}
+
+@keyframes shakeIn {
+  0%, 100% {
+    transform: translateX(-50%) translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-50%) translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(-50%) translateX(5px);
+  }
+}
+
+.death-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #c45c45;
+  margin-bottom: 10px;
+}
+
+.lives-remaining {
+  font-size: 0.8rem;
+  color: #8a7a6a;
+  margin-bottom: 15px;
+}
+
+.continue-button {
+  background: transparent;
+  border: 1px solid #8a7a6a;
+  color: #8a7a6a;
+  padding: 10px 25px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.continue-button:hover {
+  border-color: #d4c4a8;
+  color: #d4c4a8;
+}
+
+/* Victory notice */
+.victory-notice {
+  background: rgba(10, 9, 8, 0.9);
+  border: 2px solid #8a9a7a;
+  padding: 25px 40px;
+  animation: pulseIn 0.5s ease-out;
+}
+
+@keyframes pulseIn {
+  0% {
+    transform: translateX(-50%) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.victory-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #8a9a7a;
+  margin-bottom: 5px;
+}
+
+.level-complete {
+  font-size: 0.8rem;
+  color: #6a7a5a;
+  margin-bottom: 15px;
+}
+
+.next-level-button {
+  background: transparent;
+  border: 2px solid #8a9a7a;
+  color: #8a9a7a;
+  padding: 12px 30px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.next-level-button:hover {
+  background: rgba(138, 154, 122, 0.2);
+  box-shadow: 0 0 20px rgba(138, 154, 122, 0.3);
+}
+
