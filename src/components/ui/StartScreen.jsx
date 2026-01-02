@@ -1,9 +1,15 @@
 import { useGameStore } from '../../stores/gameStore';
+import { playMusic } from '../../utils/music';
 import './StartScreen.css';
 
 export function StartScreen() {
   const startGame = useGameStore((state) => state.startGame);
   const gamePhase = useGameStore((state) => state.gamePhase);
+
+  const handleStart = () => {
+    playMusic(); // Start background music on user interaction
+    startGame();
+  };
 
   if (gamePhase !== 'start') return null;
 
@@ -32,7 +38,7 @@ export function StartScreen() {
           Survive to advance. Each level grants an extra life.
         </p>
 
-        <button className="start-button" onClick={startGame}>
+        <button className="start-button" onClick={handleStart}>
           <span className="button-text">PULL THE TRIGGER</span>
           <span className="button-underline"></span>
         </button>
@@ -44,4 +50,3 @@ export function StartScreen() {
     </div>
   );
 }
-

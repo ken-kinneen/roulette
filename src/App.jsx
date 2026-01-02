@@ -3,6 +3,7 @@ import { StartScreen } from './components/ui/StartScreen';
 import { GameHUD } from './components/ui/GameHUD';
 import { GameOverScreen } from './components/ui/GameOverScreen';
 import { ScreenFlashOverlay } from './components/ui/ScreenFlashOverlay';
+import { MuteButton } from './components/ui/MuteButton';
 import './index.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
       <StartScreen />
       <GameHUD />
       <GameOverScreen />
+      <MuteButton />
     </div>
   );
 }

@@ -1,32 +1,48 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
 
 export function Revolver() {
   const groupRef = useRef();
-  const cylinderRef = useRef();
+  const { scene } = useGLTF('/revolver.glb');
   const currentTurn = useGameStore((state) => state.currentTurn);
-  const bulletsShot = useGameStore((state) => state.bulletsShot);
   const isAnimating = useGameStore((state) => state.isAnimating);
   const gamePhase = useGameStore((state) => state.gamePhase);
 
-  // Position revolver at player's position, held up to head
-  // Player is at z=1.8, AI is at z=-1.8
-  const playerZ = currentTurn === 'player' ? 1.8 : -1.8;
-  const playerRotation = currentTurn === 'player' ? Math.PI : 0;
+  // Clone and prepare the scene
+  const clonedScene = useMemo(() => {
+    if (!scene) return null;
+    const clone = scene.clone();
+    // Enable shadows on all meshes
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
+
+  // Position revolver in the character's hand, pointing at their head
+  const isPlayer = currentTurn === 'player';
+  const playerZ = isPlayer ? 1.45 : -1.8;
+  const facingRotation =  4.3;
 
   useFrame((state) => {
-    if (!cylinderRef.current || !groupRef.current) return;
-
-    // Cylinder rotation based on bullets shot
-    const targetCylinderRotation = bulletsShot * (Math.PI / 3);
-    cylinderRef.current.rotation.z += (targetCylinderRotation - cylinderRef.current.rotation.z) * 0.15;
+    if (!groupRef.current) return;
 
     // Recoil animation when shooting
     if (isAnimating) {
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 40) * 0.1;
+      // Kick back slightly
+      const recoilOffset = Math.sin(state.clock.elapsedTime * 40) * 0.03;
+      groupRef.current.position.x = 0.3 + recoilOffset;
+      groupRef.current.rotation.y = (facingRotation - Math.PI / 4) + Math.sin(state.clock.elapsedTime * 35) * 0.1;
     } else {
-      groupRef.current.rotation.z *= 0.9;
+      // Smooth return to normal position
+      groupRef.current.position.x += (0.3 - groupRef.current.position.x) * 0.1;
+      const targetRotY = facingRotation - Math.PI / 4;
+      groupRef.current.rotation.y += (targetRotY - groupRef.current.rotation.y) * 0.1;
     }
   });
 
@@ -35,56 +51,29 @@ export function Revolver() {
     return null;
   }
 
+  if (!clonedScene) return null;
+
+  // Position: in the hand (right side), pointing toward head
+  // The revolver should be held at head height, to the side
   return (
     <group 
       ref={groupRef} 
-      position={[0.3, 1.5, playerZ + (currentTurn === 'player' ? -0.3 : 0.3)]}
-      rotation={[0, playerRotation, Math.PI / 2]}
+      position={[
+        0.3,  // To the right side (in hand)
+        1.35, // Head height
+        playerZ + (isPlayer ? 0.25 : -0.25) // Slightly forward of character
+      ]}
+      rotation={[
+        Math.PI / 12,           // Slight tilt up
+        16, // Pointing inward toward head (45 degrees)
+        0                       // No roll
+      ]}
+      scale={[0.12, 0.12, 0.12]}
     >
-      {/* Barrel - pointing at head (to the side) */}
-      <mesh rotation={[0, 0, 0]} position={[0.2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.025, 0.025, 0.35, 8]} />
-        <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
-      </mesh>
-
-      {/* Cylinder (chamber) */}
-      <group ref={cylinderRef} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <mesh castShadow>
-          <cylinderGeometry args={[0.06, 0.06, 0.1, 6]} />
-          <meshStandardMaterial color="#3a3a3a" metalness={0.7} roughness={0.4} />
-        </mesh>
-
-        {/* Chamber holes */}
-        {[0, 1, 2, 3, 4, 5].map((i) => {
-          const angle = (i * Math.PI * 2) / 6;
-          const x = Math.cos(angle) * 0.035;
-          const z = Math.sin(angle) * 0.035;
-          return (
-            <mesh key={i} position={[x, 0.06, z]}>
-              <cylinderGeometry args={[0.012, 0.012, 0.02, 8]} />
-              <meshStandardMaterial color="#1a1a1a" />
-            </mesh>
-          );
-        })}
-      </group>
-
-      {/* Handle/Grip */}
-      <mesh position={[-0.08, -0.08, 0]} rotation={[0, 0, -0.3]} castShadow>
-        <boxGeometry args={[0.06, 0.14, 0.05]} />
-        <meshStandardMaterial color="#4a3020" roughness={0.6} />
-      </mesh>
-
-      {/* Frame */}
-      <mesh position={[0.03, 0, 0]} castShadow>
-        <boxGeometry args={[0.12, 0.05, 0.04]} />
-        <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
-      </mesh>
-
-      {/* Hammer */}
-      <mesh position={[-0.05, 0.05, 0]} rotation={[0, 0, -0.4]} castShadow>
-        <boxGeometry args={[0.02, 0.05, 0.015]} />
-        <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
-      </mesh>
+      <primitive object={clonedScene} />
     </group>
   );
 }
+
+// Preload the model
+useGLTF.preload('/revolver.glb');

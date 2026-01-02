@@ -5,7 +5,7 @@ import { useGameStore } from '../../stores/gameStore';
 export function Character({ position, rotation = [0, 0, 0], isPlayer = false, isAI = false }) {
   const groupRef = useRef();
   const headRef = useRef();
-  const armRef = useRef();
+  const rightArmRef = useRef();
   const gamePhase = useGameStore((state) => state.gamePhase);
   const currentTurn = useGameStore((state) => state.currentTurn);
 
@@ -51,18 +51,34 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       groupRef.current.rotation.z = 0;
     }
 
-    // Arm animation for holding gun
-    if (armRef.current) {
+    // Right arm animation for holding gun
+    if (rightArmRef.current) {
       if (isHoldingGun && !isDead) {
-        // Raise arm to hold gun at head
-        armRef.current.rotation.x = -1.2;
-        armRef.current.rotation.z = -0.8;
-        armRef.current.position.set(0.25, 0.7, 0.15);
+        // Raise arm to hold gun at head - bent at elbow, hand near temple
+        const targetRotX = -1.4; // Bent up
+        const targetRotZ = -2; // Bent inward toward head
+        const targetPosX = 0.3;
+        const targetPosY = 0.9;
+        const targetPosZ = 0.05;
+
+        rightArmRef.current.rotation.x += (targetRotX - rightArmRef.current.rotation.x) * 0.1;
+        rightArmRef.current.rotation.z += (targetRotZ - rightArmRef.current.rotation.z) * 0.1;
+        rightArmRef.current.position.x += (targetPosX - rightArmRef.current.position.x) * 0.1;
+        rightArmRef.current.position.y += (targetPosY - rightArmRef.current.position.y) * 0.1;
+        rightArmRef.current.position.z += (targetPosZ - rightArmRef.current.position.z) * 0.1;
       } else {
         // Resting position
-        armRef.current.rotation.x = 0.3;
-        armRef.current.rotation.z = -0.2;
-        armRef.current.position.set(0.35, 0.5, 0.1);
+        const targetRotX = 0.3;
+        const targetRotZ = -0.2;
+        const targetPosX = 0.35;
+        const targetPosY = 0.5;
+        const targetPosZ = 0.1;
+
+        rightArmRef.current.rotation.x += (targetRotX - rightArmRef.current.rotation.x) * 0.1;
+        rightArmRef.current.rotation.z += (targetRotZ - rightArmRef.current.rotation.z) * 0.1;
+        rightArmRef.current.position.x += (targetPosX - rightArmRef.current.position.x) * 0.1;
+        rightArmRef.current.position.y += (targetPosY - rightArmRef.current.position.y) * 0.1;
+        rightArmRef.current.position.z += (targetPosZ - rightArmRef.current.position.z) * 0.1;
       }
     }
   });
@@ -87,13 +103,13 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       </mesh>
 
       {/* Left Arm */}
-      <mesh position={[-0.35, 0.5, 0.1]} rotation={[0.3, 0, 0.2]} castShadow>
+      <mesh position={[-0.35, 1, 0.1]} rotation={[0.3, 0, 0.2]} castShadow>
         <capsuleGeometry args={[0.08, 0.4, 4, 8]} />
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
 
       {/* Right Arm - animates for gun holding */}
-      <mesh ref={armRef} position={[0.35, 0.5, 0.1]} rotation={[0.3, 0, -0.2]} castShadow>
+      <mesh ref={rightArmRef} position={[0.35, 0.5, 0.1]} rotation={[0.3, 0, -0.2]} castShadow>
         <capsuleGeometry args={[0.08, 0.4, 4, 8]} />
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
