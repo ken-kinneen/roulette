@@ -166,10 +166,10 @@ export function GameScene() {
       <CashBowl />
 
       {/* Player (you) - facing the table from the front */}
-      <Character position={[0, 0, 1.8]} rotation={[0, Math.PI, 0]} isPlayer />
+      <Character position={[0, 0, 1.2]} rotation={[0, Math.PI, 0]} isPlayer />
 
       {/* AI opponent - facing the table from the back */}
-      <Character position={[0, 0, -1]} rotation={[0, 0, 0]} isAI />
+      <Character position={[0, 0, -1.2]} rotation={[0, 0, 0]} isAI />
 
       {/* Revolver held by current player */}
       <Revolver />

@@ -27,7 +27,7 @@ export function WhiskeyBottle() {
     <group 
       position={[
         -0.8,  // Left side of table
-        1.65,  // On top of table
+        1.5,  // On top of table
         0      // Center depth
       ]}
       rotation={[0, 0, 0]}
