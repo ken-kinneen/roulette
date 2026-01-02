@@ -11,8 +11,8 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const currentTurn = useGameStore((state) => state.currentTurn);
 
   // Load the character model and animations
-  const { scene } = useGLTF('/src/assets/models/russian/Meshy_AI_Character_output.glb');
-  const { animations } = useGLTF('/src/assets/models/russian/Meshy_AI_Meshy_Merged_Animations.glb');
+  const { scene } = useGLTF('/russian/character.glb');
+  const { animations } = useGLTF('/russian/animations.glb');
   
   // Clone the scene using SkeletonUtils for proper skinned mesh cloning
   const clonedScene = useMemo(() => {
@@ -49,33 +49,25 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   // Play appropriate animations based on game state
   useEffect(() => {
-    if (!actions || Object.keys(actions).length === 0) {
-      console.log('No actions available yet');
-      return;
-    }
-
-    console.log('Available animations:', Object.keys(actions));
-    console.log('Game state - isDead:', isDead, 'isHoldingGun:', isHoldingGun, 'gamePhase:', gamePhase, 'currentTurn:', currentTurn);
+    if (!actions || Object.keys(actions).length === 0) return;
 
     // Determine which animation to play
-    let animationName = "Walking";
+    let animationName = null;
     
-  /*   if (isDead) {
+    if (isDead) {
       // Look for death/die animation - or use doze off as fallback
       animationName = Object.keys(actions).find(key => 
         key.toLowerCase().includes('death') || 
         key.toLowerCase().includes('die') ||
         key.toLowerCase().includes('dead')
-      ) || animationName;
+      ) || 'Sit_and_Doze_Off';
     } else if (isHoldingGun) {
       // Use sitting answering questions for holding gun state
-      animationName ="Sitting_Answering_Questions";
+      animationName = 'Sitting_Answering_Questions';
     } else {
       // Use Chair_Sit_Idle_M for idle sitting
-      animationName = "Sitting_Answering_Questions";
-    } */
-
-    console.log('Selected animation:', animationName, 'Current animation:', currentAnimation.current);
+      animationName = 'Chair_Sit_Idle_M';
+    }
 
     // If we found an animation and it's different from current, play it
     if (animationName && actions[animationName]) {
@@ -97,12 +89,8 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       }
       
       action.reset().play();
-      
-      console.log('✅ Playing animation:', animationName);
 
       currentAnimation.current = animationName;
-    } else {
-      console.log('⚠️ Animation not found:', animationName);
     }
 
   }, [actions, isDead, isHoldingGun, gamePhase, currentTurn]);
@@ -139,39 +127,39 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   if (!clonedScene) return null;
 
   return (
-    <group ref={groupRef} position={position} rotation={rotation}>
+    <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
       {/* Character model - positioned to sit on chair seat level */}
-      <group position={[0, -0.22, 0]} scale={1.2}>
+      <group position={[0, 0.05, 0]} scale={0.8}>
         <primitive object={clonedScene} />
       </group>
 
       {/* Chair back */}
-      <mesh position={[0, 0.5, -0.3]} castShadow receiveShadow>
+      <mesh position={[0, 0.45, -0.3]} castShadow receiveShadow>
         <boxGeometry args={[0.6, 0.8, 0.1]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
 
-      {/* Chair seat */}
-      <mesh position={[0, 0, -0.05]} castShadow receiveShadow>
+      {/* Chair seat - at y=0.4 */}
+      <mesh position={[0, 0.4, -0.05]} castShadow receiveShadow>
         <boxGeometry args={[0.5, 0.1, 0.5]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
 
-      {/* Chair legs */}
-      <mesh position={[-0.2, -0.3, 0.15]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+      {/* Chair legs - height 0.4, positioned so bottom is at y=0 */}
+      <mesh position={[-0.2, 0.2, 0.15]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
-      <mesh position={[0.2, -0.3, 0.15]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+      <mesh position={[0.2, 0.2, 0.15]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
-      <mesh position={[-0.2, -0.3, -0.25]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+      <mesh position={[-0.2, 0.2, -0.25]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
-      <mesh position={[0.2, -0.3, -0.25]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+      <mesh position={[0.2, 0.2, -0.25]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
         <meshStandardMaterial color="#3d2817" roughness={0.8} />
       </mesh>
     </group>
@@ -179,5 +167,5 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 }
 
 // Preload the models
-useGLTF.preload('/src/assets/models/russian/Meshy_AI_Character_output.glb');
-useGLTF.preload('/src/assets/models/russian/Meshy_AI_Meshy_Merged_Animations.glb');
+useGLTF.preload('/russian/character.glb');
+useGLTF.preload('/russian/animations.glb');

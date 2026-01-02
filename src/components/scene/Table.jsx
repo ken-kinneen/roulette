@@ -1,33 +1,39 @@
+import { useMemo } from 'react';
+import { useGLTF } from '@react-three/drei';
+
 export function Table() {
-  const tableTop = { width: 3, height: 0.15, depth: 2 };
-  const legHeight = 1.2;
-  const legRadius = 0.08;
-  const tableHeight = legHeight + tableTop.height / 2;
+  const { scene } = useGLTF('/table.glb');
 
-  const legPositions = [
-    [-tableTop.width / 2 + 0.2, legHeight / 2, -tableTop.depth / 2 + 0.2],
-    [tableTop.width / 2 - 0.2, legHeight / 2, -tableTop.depth / 2 + 0.2],
-    [-tableTop.width / 2 + 0.2, legHeight / 2, tableTop.depth / 2 - 0.2],
-    [tableTop.width / 2 - 0.2, legHeight / 2, tableTop.depth / 2 - 0.2],
-  ];
+  // Clone and prepare the scene
+  const clonedScene = useMemo(() => {
+    if (!scene) return null;
+    const clone = scene.clone();
+    // Enable shadows on all meshes
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
 
+  if (!clonedScene) return null;
+
+  // Position the table model
+  // Adjust scale and position to match the previous table dimensions
   return (
-    <group position={[0, 0, 0]}>
-      {/* Table Top */}
-      <mesh position={[0, tableHeight, 0]} castShadow receiveShadow>
-        <boxGeometry args={[tableTop.width, tableTop.height, tableTop.depth]} />
-        <meshStandardMaterial color="#5c3d2e" roughness={0.6} />
-      </mesh>
-
-      {/* Table Legs */}
-      {legPositions.map((pos, index) => (
-        <mesh key={index} position={pos} castShadow>
-          <cylinderGeometry args={[legRadius, legRadius, legHeight, 8]} />
-          <meshStandardMaterial color="#4a3225" roughness={0.7} />
-        </mesh>
-      ))}
+    <group 
+      position={[0, 0, 0]} 
+      rotation={[0, 0, 0]}
+      scale={1}
+    >
+      <primitive object={clonedScene} />
     </group>
   );
 }
+
+// Preload the model
+useGLTF.preload('/table.glb');
 
 

@@ -6,6 +6,8 @@ import { Table } from './Table';
 import { Character } from './Character';
 import { Revolver } from './Revolver';
 import { WhiskeyBottle } from './WhiskeyBottle';
+import { Ashtray } from './Ashtray';
+import { CashBowl } from './CashBowl';
 import { Lighting } from './Lighting';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
@@ -160,12 +162,14 @@ export function GameScene() {
       <Room />
       <Table />
       <WhiskeyBottle />
+      <Ashtray scale={5} />
+      <CashBowl />
 
       {/* Player (you) - facing the table from the front */}
-      <Character position={[0, 1.1, 1.8]} rotation={[0, Math.PI, 0]} isPlayer />
+      <Character position={[0, 0, 1.8]} rotation={[0, Math.PI, 0]} isPlayer />
 
       {/* AI opponent - facing the table from the back */}
-      <Character position={[0, 1.1, -1.8]} rotation={[0, 0, 0]} isAI />
+      <Character position={[0, 0, -1]} rotation={[0, 0, 0]} isAI />
 
       {/* Revolver held by current player */}
       <Revolver />
