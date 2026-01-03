@@ -14,9 +14,14 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const currentTurn = useGameStore((state) => state.currentTurn);
   const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
   const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
+  
+  // Load different models based on whether this is player or AI
+  const characterModelPath = isPlayer ? '/solider/Meshy_AI_Character_output.glb' : '/russian/character.glb';
+  const animationsModelPath = isPlayer ? '/solider/Meshy_AI_Meshy_Merged_Animations.glb' : '/russian/animations.glb';
+  
   // Load the character model, animations, and gun
-  const { scene } = useGLTF('/russian/character.glb');
-  const { animations } = useGLTF('/russian/animations.glb');
+  const { scene } = useGLTF(characterModelPath);
+  const { animations } = useGLTF(animationsModelPath);
   const gunGltf = useGLTF('/revolver.glb');
   
   // Clone the gun scene
@@ -69,12 +74,13 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   }, [scene]);
 
   // Use animations with the cloned scene directly
-  const { actions } = useAnimations(animations, clonedScene);
+  const { actions, mixer } = useAnimations(animations, clonedScene);
 
   // Animation state
   const deathProgress = useRef(0);
   const breathOffset = useMemo(() => (isPlayer ? 0 : Math.PI), [isPlayer]);
   const currentAnimation = useRef(null);
+  const hasInitialized = useRef(false);
 
   // Determine if this character is currently holding the gun
   const isMyTurn = (isPlayer && currentTurn === 'player') || (isAI && currentTurn === 'ai');
@@ -92,21 +98,43 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
                  (isAI && gamePhase === 'aiDead');
 
+  // Determine target animation name
+  const targetAnimation = useMemo(() => {
+    if (isDead) {
+      return "DeathTrimmed";
+    }
+    return "Chair_Sit_Idle_M";
+  }, [isDead]);
+
   // Play appropriate animations based on game state
   useEffect(() => {
     if (!actions || Object.keys(actions).length === 0) return;
-
-    const running = "Chair_Sit_Idle_M"; 
-    let animationName = running;
     
-    if (isDead) {
-      animationName = actions["DeathTrimmed"] ? "DeathTrimmed" : "Running";
+    // Find the best matching animation
+    let animationName = targetAnimation;
+    if (!actions[animationName]) {
+      // Fallback: try to find any idle or sitting animation
+      const availableAnims = Object.keys(actions);
+      const idleAnim = availableAnims.find(name => 
+        name.toLowerCase().includes('idle') || 
+        name.toLowerCase().includes('sit')
+      );
+      animationName = idleAnim || availableAnims[0];
+    }
+    
+    // Skip if already playing this animation
+    if (currentAnimation.current === animationName && hasInitialized.current) {
+      const action = actions[animationName];
+      if (action && action.isRunning()) {
+        return;
+      }
     }
   
     if (animationName && actions[animationName]) {
-      Object.values(actions).forEach(action => {
-        if (action.isRunning()) {
-          action.stop();
+      // Stop all other animations
+      Object.entries(actions).forEach(([name, action]) => {
+        if (name !== animationName && action.isRunning()) {
+          action.fadeOut(0.2);
         }
       });
 
@@ -114,15 +142,35 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       
       if (isDead) {
         action.setLoop(THREE.LoopOnce, 1);
+        // Use method to set clamp behavior
+        action.setEffectiveTimeScale(1);
       } else {
         action.setLoop(THREE.LoopRepeat);
       }
       
-      action.reset().play();
+      action.reset().fadeIn(0.2).play();
       currentAnimation.current = animationName;
+      hasInitialized.current = true;
     }
 
-  }, [actions, isDead, gamePhase, currentTurn]);
+  }, [actions, targetAnimation, isDead]);
+
+  // Ensure animation keeps playing - prevent T-pose on re-renders
+  useEffect(() => {
+    if (!mixer || !actions || Object.keys(actions).length === 0) return;
+    
+    // Check periodically if animation is still running
+    const checkInterval = setInterval(() => {
+      if (!isDead && currentAnimation.current && actions[currentAnimation.current]) {
+        const action = actions[currentAnimation.current];
+        if (!action.isRunning()) {
+          action.reset().play();
+        }
+      }
+    }, 100);
+    
+    return () => clearInterval(checkInterval);
+  }, [mixer, actions, isDead]);
 
   // Get world position for muzzle flash and effects
   const getMuzzleWorldPosition = useCallback(() => {
@@ -222,4 +270,6 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 // Preload the models
 useGLTF.preload('/russian/character.glb');
 useGLTF.preload('/russian/animations.glb');
+useGLTF.preload('/solider/Meshy_AI_Character_output.glb');
+useGLTF.preload('/solider/Meshy_AI_Meshy_Merged_Animations.glb');
 useGLTF.preload('/revolver.glb');
