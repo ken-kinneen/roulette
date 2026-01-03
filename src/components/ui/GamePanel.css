@@ -504,6 +504,23 @@
 .result-msg.correct .result-outcome { color: #8a9a7a; }
 .result-msg.wrong .result-outcome { color: #c45c45; }
 
+.result-consequence {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: rgba(196, 92, 69, 0.2);
+  color: #e8c9a0;
+  letter-spacing: 0.1rem;
+  animation: consequencePulse 0.8s ease-in-out infinite;
+}
+
+@keyframes consequencePulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
 @keyframes resultPop {
   0% { transform: scale(0.8); opacity: 0; }
   50% { transform: scale(1.05); }
@@ -720,6 +737,31 @@
   animation: resultFlash 0.2s ease-out;
 }
 
+.trigger-sequence-zone.phase-result .result-phase.empty {
+  background: transparent;
+}
+
+.trigger-sequence-zone.phase-result .result-phase.empty .sequence-text {
+  color: rgba(212, 196, 168, 0.6);
+  font-size: 1.2rem;
+}
+
+.trigger-sequence-zone.phase-result .result-phase.empty .result-icon {
+  font-size: 2rem;
+  color: rgba(212, 196, 168, 0.4);
+}
+
+.trigger-sequence-zone.phase-result .result-phase.fired .sequence-text {
+  color: #c45c45;
+  font-size: 2rem;
+  text-shadow: 0 0 20px rgba(196, 92, 69, 0.5);
+}
+
+.trigger-sequence-zone.phase-result .result-phase.fired .result-icon {
+  font-size: 2.5rem;
+  color: #c45c45;
+}
+
 @keyframes dropShake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
@@ -772,6 +814,33 @@
   text-transform: uppercase;
 }
 
+.sequence-subtext {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: rgba(212, 196, 168, 0.5);
+  margin-top: -4px;
+}
+
+/* Shooter variants */
+.trigger-sequence-zone.shooter-ai {
+  border-color: rgba(138, 154, 122, 0.5);
+}
+
+.trigger-sequence-zone.shooter-ai .sequence-text {
+  color: rgba(138, 154, 122, 0.9);
+}
+
+.trigger-sequence-zone.shooter-ai.phase-drop {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(10, 30, 10, 0.6) 100%);
+  border-color: rgba(138, 154, 122, 0.4);
+}
+
+.trigger-sequence-zone.shooter-ai.phase-result.fired {
+  background: linear-gradient(180deg, rgba(40, 100, 40, 0.6) 0%, rgba(20, 50, 20, 0.8) 100%);
+  border-color: rgba(138, 200, 122, 0.8);
+}
+
 /* Drop Phase */
 .drop-phase {
   animation: dropFadeIn 0.5s ease-out;
@@ -782,7 +851,15 @@
 }
 
 .drop-phase .sequence-text {
+  color: rgba(212, 196, 168, 0.8);
+}
+
+.shooter-player .drop-phase .sequence-text {
   color: #c45c45;
+}
+
+.shooter-ai .drop-phase .sequence-text {
+  color: #8a9a7a;
 }
 
 @keyframes dropFadeIn {

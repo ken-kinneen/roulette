@@ -33,7 +33,6 @@ export function GamePanel() {
   const bulletsShot = useGameStore((state) => state.bulletsShot);
   const currentTurn = useGameStore((state) => state.currentTurn);
   const gamePhase = useGameStore((state) => state.gamePhase);
-  const pullTrigger = useGameStore((state) => state.pullTrigger);
   const nextRound = useGameStore((state) => state.nextRound);
   const continueAfterDeath = useGameStore((state) => state.continueAfterDeath);
   const getCurrentOdds = useGameStore((state) => state.getCurrentOdds);
@@ -47,11 +46,12 @@ export function GamePanel() {
   const makeGuess = useGameStore((state) => state.makeGuess);
   const aiMakeGuess = useGameStore((state) => state.aiMakeGuess);
   const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
+  const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
+  const triggerSequenceWillFire = useGameStore((state) => state.triggerSequenceWillFire);
   
   const [riskPulse, setRiskPulse] = useState(false);
   const prevBulletsShot = useRef(bulletsShot);
   const vladCardTimeoutRef = useRef(null);
-  const vladShotTimeoutRef = useRef(null);
 
   // Vlad makes card guess
   useEffect(() => {
@@ -64,21 +64,6 @@ export function GamePanel() {
       if (vladCardTimeoutRef.current) clearTimeout(vladCardTimeoutRef.current);
     };
   }, [gamePhase, currentTurn, cardGamePhase, isAnimating, aiMakeGuess]);
-
-  // Vlad shoots revolver
-  useEffect(() => {
-    if (currentTurn === 'ai' && gamePhase === 'playing' && !isAnimating && cardGameWinner === 'player') {
-      vladShotTimeoutRef.current = setTimeout(() => {
-        const state = useGameStore.getState();
-        if (state.currentTurn === 'ai' && state.gamePhase === 'playing' && !state.isAnimating) {
-          pullTrigger();
-        }
-      }, 1500);
-    }
-    return () => {
-      if (vladShotTimeoutRef.current) clearTimeout(vladShotTimeoutRef.current);
-    };
-  }, [currentTurn, gamePhase, isAnimating, pullTrigger, cardGameWinner]);
 
   // Risk pulse animation
   useEffect(() => {
@@ -96,7 +81,6 @@ export function GamePanel() {
   const isRevolverPhase = gamePhase === 'playing';
   const isTriggerSequence = gamePhase === 'triggerSequence';
   const isPlayerTurn = currentTurn === 'player';
-  const mustShoot = isRevolverPhase && cardGameWinner !== null;
   const isOutcome = gamePhase === 'playerDead' || gamePhase === 'aiDead';
   const isPlayerGuessing = isCardGame && currentTurn === 'player' && cardGamePhase === 'guessing';
   const isVladGuessing = isCardGame && currentTurn === 'ai' && cardGamePhase === 'guessing';
@@ -187,11 +171,13 @@ export function GamePanel() {
         <div className="panel-section cards-section">
           {/* Turn Banner */}
           <div className="turn-banner">
-            <span className={`turn-who ${isPlayerTurn ? 'player' : 'vlad'}`}>
-              {isTriggerSequence ? 'YOUR FATE' : isPlayerTurn ? 'YOUR TURN' : "VLAD'S TURN"}
+            <span className={`turn-who ${isTriggerSequence ? (triggerSequenceShooter === 'player' ? 'player' : 'vlad') : (isPlayerTurn ? 'player' : 'vlad')}`}>
+              {isTriggerSequence 
+                ? (triggerSequenceShooter === 'player' ? 'YOUR FATE' : "VLAD'S FATE")
+                : (isPlayerTurn ? 'YOUR TURN' : "VLAD'S TURN")}
             </span>
             <span className="turn-phase">
-              {isCardGame ? '♠ HI-LO CARDS' : isTriggerSequence ? '💀 RUSSIAN ROULETTE' : isRevolverPhase ? '🎯 SHOOT' : ''}
+              {isCardGame ? '♠ HI-LO' : isTriggerSequence ? '• ROULETTE' : isRevolverPhase ? '• SHOOT' : ''}
             </span>
           </div>
 
@@ -260,59 +246,74 @@ export function GamePanel() {
               <div className={`result-msg ${lastGuessResult}`}>
                 <span className="result-who">{currentTurn === 'player' ? 'YOU' : 'VLAD'} GUESSED {lastGuess?.toUpperCase()}</span>
                 <span className="result-outcome">{lastGuessResult === 'correct' ? '✓ CORRECT!' : '✗ WRONG!'}</span>
+                <span className="result-consequence">
+                  {lastGuessResult === 'correct' 
+                    ? `${currentTurn === 'player' ? 'VLAD' : 'YOU'} MUST SHOOT!`
+                    : `${currentTurn === 'player' ? 'YOU' : 'VLAD'} MUST SHOOT!`}
+                </span>
               </div>
             )}
 
-            {/* Trigger Sequence - Automatic suspenseful sequence */}
+            {/* Trigger Sequence - Suspenseful sequence for both player and AI */}
             {isTriggerSequence && (
-              <div className={`trigger-sequence-zone phase-${triggerSequencePhase}`}>
+              <div className={`trigger-sequence-zone phase-${triggerSequencePhase} shooter-${triggerSequenceShooter}`}>
                 {triggerSequencePhase === 'drop' && (
                   <div className="sequence-phase drop-phase">
-                    <span className="sequence-icon">💀</span>
-                    <span className="sequence-text">You lost...</span>
+                    <span className="sequence-icon">⚰️</span>
+                    <span className="sequence-text">
+                      {triggerSequenceShooter === 'player' 
+                        ? (cardGameWinner === 'ai' ? 'Wrong guess.' : 'Vlad was right.')
+                        : (cardGameWinner === 'player' ? 'You were right.' : 'Vlad guessed wrong.')}
+                    </span>
+                    <span className="sequence-subtext">
+                      {triggerSequenceShooter === 'player' ? 'You must fire.' : 'Vlad must fire.'}
+                    </span>
                   </div>
                 )}
                 {triggerSequencePhase === 'heartbeat' && (
                   <div className="sequence-phase heartbeat-phase">
-                    <span className="sequence-icon heartbeat-pulse">❤️</span>
-                    <span className="sequence-text">Your heart pounds...</span>
+                    <span className="sequence-icon heartbeat-pulse">♠</span>
+                    <span className="sequence-text">
+                      {triggerSequenceShooter === 'player' ? 'Silence...' : 'Vlad raises the gun...'}
+                    </span>
                   </div>
                 )}
                 {triggerSequencePhase === 'spin' && (
                   <div className="sequence-phase spin-phase">
-                    <span className="sequence-icon spin-icon">🔄</span>
-                    <span className="sequence-text">The cylinder spins...</span>
+                    <span className="sequence-icon spin-icon">⟳</span>
+                    <span className="sequence-text">
+                      {triggerSequenceShooter === 'player' ? 'Chamber aligned...' : 'The cylinder clicks...'}
+                    </span>
                   </div>
                 )}
                 {triggerSequencePhase === 'pull' && (
                   <div className="sequence-phase pull-phase">
-                    <span className="sequence-icon">🎯</span>
-                    <span className="sequence-text">Pulling the trigger...</span>
+                    <span className="sequence-icon">•</span>
+                    <span className="sequence-text">
+                      {triggerSequenceShooter === 'player' ? 'Pulling...' : 'Vlad pulls the trigger...'}
+                    </span>
                   </div>
                 )}
                 {triggerSequencePhase === 'result' && (
-                  <div className="sequence-phase result-phase">
-                    <span className="sequence-icon flash-icon">💥</span>
-                    <span className="sequence-text">...</span>
+                  <div className={`sequence-phase result-phase ${triggerSequenceWillFire ? 'fired' : 'empty'}`}>
+                    {triggerSequenceWillFire ? (
+                      <>
+                        <span className="sequence-icon result-icon">✕</span>
+                        <span className="sequence-text">BANG</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="sequence-icon result-icon">—</span>
+                        <span className="sequence-text">
+                          {triggerSequenceShooter === 'player' ? 'Click.' : 'Empty.'}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Revolver - must shoot (AI only now, player uses trigger sequence) */}
-            {mustShoot && isPlayerTurn && !isOutcome && !isTriggerSequence && (
-              <div className="shoot-zone">
-                <span className="shoot-msg">You lost - pull the trigger!</span>
-                <button className="shoot-btn" onClick={pullTrigger} disabled={isAnimating}>
-                  {isAnimating ? 'FIRING...' : 'PULL TRIGGER'}
-                </button>
-              </div>
-            )}
-
-            {/* Revolver - Vlad shooting */}
-            {mustShoot && !isPlayerTurn && !isOutcome && (
-              <div className="status-msg vlad">VLAD IS SHOOTING<span className="dots">...</span></div>
-            )}
 
             {/* Outcomes */}
             {gamePhase === 'playerDead' && lives > 0 && (

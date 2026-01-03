@@ -100,6 +100,8 @@ export const useGameStore = create((set, get) => ({
     // Trigger sequence state
     triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', null
     triggerSequenceCleanup: null,
+    triggerSequenceShooter: null, // 'player' or 'ai' - who is pulling the trigger
+    triggerSequenceWillFire: null, // true/false - whether the bullet will fire (for UI)
 
     // Card game state
     deck: [],
@@ -168,47 +170,28 @@ export const useGameStore = create((set, get) => ({
                 cardGamePhase: "result",
             });
 
-            // After showing result, proceed
+            // After showing result, someone shoots immediately
+            // If correct: opponent shoots
+            // If wrong: guesser shoots
             setTimeout(() => {
-                if (isCorrect) {
-                    // Winner guessed correctly - opponent must now guess
-                    // Move the next card to current position
-                    playCardSlide();
-                    set({
-                        currentCard: nextCard,
-                        nextCard: null,
-                        currentTurn: currentTurn === "player" ? "ai" : "player",
-                        cardGamePhase: "guessing",
-                        lastGuess: null,
-                        lastGuessResult: null,
-                        isAnimating: false,
-                    });
-                } else {
-                    // Loser must shoot the revolver
-                    const loser = currentTurn; // The one who guessed wrong
-                    set({
-                        cardGameWinner: currentTurn === "player" ? "ai" : "player",
-                        cardGamePhase: "waiting",
-                        isAnimating: false,
-                    });
+                const shooter = isCorrect ? (currentTurn === "player" ? "ai" : "player") : currentTurn;
 
-                    // Start automatic trigger sequence for the loser
-                    if (loser === "player") {
-                        // Player lost - start the suspenseful sequence
-                        setTimeout(() => {
-                            get().startTriggerSequence();
-                        }, 500);
-                    } else {
-                        // AI lost - go to normal playing phase for AI
-                        set({ gamePhase: "playing" });
-                    }
-                }
+                set({
+                    cardGameWinner: isCorrect ? currentTurn : currentTurn === "player" ? "ai" : "player",
+                    cardGamePhase: "waiting",
+                    isAnimating: false,
+                });
+
+                // Start the trigger sequence for whoever must shoot
+                setTimeout(() => {
+                    get().startTriggerSequence(shooter);
+                }, 500);
             }, 1500);
         }, 600);
     },
 
-    // Start the automatic trigger sequence for the player
-    startTriggerSequence: () => {
+    // Start the automatic trigger sequence for either player or AI
+    startTriggerSequence: (shooter = "player") => {
         const { bulletsShot, bulletPosition } = get();
         const shotNumber = bulletsShot + 1;
         const willFire = shotNumber === bulletPosition;
@@ -220,6 +203,9 @@ export const useGameStore = create((set, get) => ({
         set({
             gamePhase: "triggerSequence",
             triggerSequencePhase: "drop",
+            triggerSequenceShooter: shooter,
+            triggerSequenceWillFire: willFire,
+            currentTurn: shooter,
             isAnimating: true,
         });
 
@@ -234,6 +220,8 @@ export const useGameStore = create((set, get) => ({
                 set({
                     triggerSequencePhase: null,
                     triggerSequenceCleanup: null,
+                    triggerSequenceShooter: null,
+                    triggerSequenceWillFire: null,
                 });
                 get().processTriggerResult(result === "shot");
             },
@@ -370,6 +358,8 @@ export const useGameStore = create((set, get) => ({
             cardGameWinner: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
         });
 
         // Delay to show card dealing
@@ -495,6 +485,8 @@ export const useGameStore = create((set, get) => ({
             cardGameWinner: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
         });
 
         setTimeout(() => {
@@ -529,6 +521,8 @@ export const useGameStore = create((set, get) => ({
             cardGameWinner: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
         });
 
         setTimeout(() => {
@@ -562,6 +556,8 @@ export const useGameStore = create((set, get) => ({
             cardGameWinner: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
         });
     },
 
