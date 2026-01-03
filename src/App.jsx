@@ -5,6 +5,7 @@ import { GameOverScreen } from './components/ui/GameOverScreen';
 import { ScreenFlashOverlay } from './components/ui/ScreenFlashOverlay';
 import { AudioControls } from './components/ui/AudioControls';
 import { HelpButton } from './components/ui/HelpButton';
+import { DevTools } from './components/ui/DevTools';
 import './index.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <GamePanel />
       <GameOverScreen />
       <AudioControls />
+      <DevTools />
     </div>
   );
 }

@@ -9,13 +9,45 @@ import {
     playCardFlip,
     playCardSlide,
 } from "../utils/sounds";
-import {
-    runTriggerSequence,
-    clearSequenceTimeouts,
-    stopAllTriggerSounds,
-} from "../utils/triggerSequence";
+import { runTriggerSequence, clearSequenceTimeouts, stopAllTriggerSounds } from "../utils/triggerSequence";
+
+const STARTING_LIVES = 3;
+const LEADERBOARD_KEY = 'roulette_leaderboard';
+const MAX_LEADERBOARD_ENTRIES = 10;
 
 const getRandomBulletPosition = () => Math.floor(Math.random() * 6) + 1;
+
+// Leaderboard utilities
+const loadLeaderboard = () => {
+    try {
+        const saved = localStorage.getItem(LEADERBOARD_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveLeaderboard = (leaderboard) => {
+    try {
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
+    } catch {
+        // localStorage not available
+    }
+};
+
+const addToLeaderboard = (rounds) => {
+    const leaderboard = loadLeaderboard();
+    const entry = {
+        rounds,
+        date: new Date().toISOString(),
+        id: Date.now(),
+    };
+    leaderboard.push(entry);
+    leaderboard.sort((a, b) => b.rounds - a.rounds);
+    const trimmed = leaderboard.slice(0, MAX_LEADERBOARD_ENTRIES);
+    saveLeaderboard(trimmed);
+    return trimmed;
+};
 
 // Card utilities
 const SUITS = ["hearts", "diamonds", "clubs", "spades"];
@@ -64,7 +96,7 @@ export const useGameStore = create((set, get) => ({
     shotHistory: [],
     highestLevel: 1,
     isAnimating: false,
-    
+
     // Trigger sequence state
     triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', null
     triggerSequenceCleanup: null,
@@ -159,7 +191,7 @@ export const useGameStore = create((set, get) => ({
                         cardGamePhase: "waiting",
                         isAnimating: false,
                     });
-                    
+
                     // Start automatic trigger sequence for the loser
                     if (loser === "player") {
                         // Player lost - start the suspenseful sequence
@@ -174,23 +206,23 @@ export const useGameStore = create((set, get) => ({
             }, 1500);
         }, 600);
     },
-    
+
     // Start the automatic trigger sequence for the player
     startTriggerSequence: () => {
         const { bulletsShot, bulletPosition } = get();
         const shotNumber = bulletsShot + 1;
         const willFire = shotNumber === bulletPosition;
-        
+
         // Clean up any previous sequence
         const prevCleanup = get().triggerSequenceCleanup;
         if (prevCleanup) prevCleanup();
-        
+
         set({
             gamePhase: "triggerSequence",
             triggerSequencePhase: "drop",
             isAnimating: true,
         });
-        
+
         const cleanup = runTriggerSequence({
             willFire,
             volume: 0.7,
@@ -199,24 +231,24 @@ export const useGameStore = create((set, get) => ({
             },
             onComplete: (result) => {
                 // Sequence complete - now process the actual shot
-                set({ 
+                set({
                     triggerSequencePhase: null,
                     triggerSequenceCleanup: null,
                 });
                 get().processTriggerResult(result === "shot");
             },
         });
-        
+
         set({ triggerSequenceCleanup: cleanup });
     },
-    
+
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
         const { bulletsShot, currentTurn, lives, level, shotHistory } = get();
         const shotNumber = bulletsShot + 1;
-        
+
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
-        
+
         if (isBulletFired) {
             if (currentTurn === "player") {
                 const newLives = lives - 1;
@@ -313,7 +345,7 @@ export const useGameStore = create((set, get) => ({
         if (cleanup) cleanup();
         clearSequenceTimeouts();
         stopAllTriggerSounds();
-        
+
         playCylinderSpin();
         const deck = createDeck();
         const currentCard = deck.pop();
@@ -435,11 +467,11 @@ export const useGameStore = create((set, get) => ({
     nextLevel: () => {
         const { level } = get();
         const newLevel = level + 1;
-        
+
         // Clean up any running trigger sequence
         const cleanup = get().triggerSequenceCleanup;
         if (cleanup) cleanup();
-        
+
         playCylinderSpin();
 
         const deck = createDeck();
@@ -476,7 +508,7 @@ export const useGameStore = create((set, get) => ({
         // Clean up any running trigger sequence
         const cleanup = get().triggerSequenceCleanup;
         if (cleanup) cleanup();
-        
+
         playCylinderSpin();
 
         const deck = createDeck();
@@ -512,7 +544,7 @@ export const useGameStore = create((set, get) => ({
         if (cleanup) cleanup();
         clearSequenceTimeouts();
         stopAllTriggerSounds();
-        
+
         set({
             level: 1,
             lives: 1,

@@ -47,6 +47,10 @@ export function setMusicVolume(volume) {
     }
 }
 
+export function getMusicVolume() {
+    return audio ? audio.volume : 0.1;
+}
+
 export function isMusicPlaying() {
     return isPlaying && audio && !audio.paused;
 }
