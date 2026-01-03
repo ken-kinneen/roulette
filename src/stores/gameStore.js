@@ -12,41 +12,37 @@ import {
 import { runTriggerSequence, clearSequenceTimeouts, stopAllTriggerSounds } from "../utils/triggerSequence";
 
 const STARTING_LIVES = 3;
-const LEADERBOARD_KEY = "roulette_leaderboard";
-const MAX_LEADERBOARD_ENTRIES = 10;
+const API_BASE = "/api";
 
 const getRandomBulletPosition = () => Math.floor(Math.random() * 6) + 1;
 
-// Leaderboard utilities
-const loadLeaderboard = () => {
+// Global leaderboard API utilities
+const fetchGlobalLeaderboard = async () => {
     try {
-        const saved = localStorage.getItem(LEADERBOARD_KEY);
-        return saved ? JSON.parse(saved) : [];
-    } catch {
+        const response = await fetch(`${API_BASE}/leaderboard`);
+        if (!response.ok) throw new Error("Failed to fetch leaderboard");
+        const data = await response.json();
+        return data.leaderboard || [];
+    } catch (error) {
+        console.error("Error fetching global leaderboard:", error);
         return [];
     }
 };
 
-const saveLeaderboard = (leaderboard) => {
+const submitScore = async (name, rounds) => {
     try {
-        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
-    } catch {
-        // localStorage not available
+        const response = await fetch(`${API_BASE}/leaderboard`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, rounds }),
+        });
+        if (!response.ok) throw new Error("Failed to submit score");
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error submitting score:", error);
+        throw error;
     }
-};
-
-const addToLeaderboard = (rounds) => {
-    const leaderboard = loadLeaderboard();
-    const entry = {
-        rounds,
-        date: new Date().toISOString(),
-        id: Date.now(),
-    };
-    leaderboard.push(entry);
-    leaderboard.sort((a, b) => b.rounds - a.rounds);
-    const trimmed = leaderboard.slice(0, MAX_LEADERBOARD_ENTRIES);
-    saveLeaderboard(trimmed);
-    return trimmed;
 };
 
 // Card utilities
@@ -94,8 +90,14 @@ export const useGameStore = create((set, get) => ({
     currentTurn: "player",
     gamePhase: "start", // 'start', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'roundComplete', 'gameOver'
     shotHistory: [],
-    leaderboard: loadLeaderboard(),
     isAnimating: false,
+
+    // Global leaderboard state
+    globalLeaderboard: [],
+    globalLeaderboardLoading: false,
+    showNameInput: false,
+    submittedRank: null,
+    playerName: null,
 
     // Trigger sequence state
     triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', null
@@ -232,7 +234,7 @@ export const useGameStore = create((set, get) => ({
 
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
-        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory } = get();
+        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard } = get();
         const shotNumber = bulletsShot + 1;
 
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
@@ -241,14 +243,19 @@ export const useGameStore = create((set, get) => ({
             if (currentTurn === "player") {
                 const newLives = lives - 1;
                 if (newLives <= 0) {
-                    // Game over - add to leaderboard
+                    // Game over - check if qualifies for leaderboard
                     setTimeout(() => playDeath(), 300);
-                    const newLeaderboard = addToLeaderboard(roundsSurvived);
+
+                    // Check if score qualifies for leaderboard (top 100 or survived at least 1 round)
+                    const qualifiesForLeaderboard =
+                        roundsSurvived > 0 &&
+                        (globalLeaderboard.length < 100 || roundsSurvived > (globalLeaderboard[globalLeaderboard.length - 1]?.rounds || 0));
+
                     set({
                         bulletsShot: shotNumber,
                         shotHistory: newHistory,
                         gamePhase: "gameOver",
-                        leaderboard: newLeaderboard,
+                        showNameInput: qualifiesForLeaderboard,
                         isAnimating: false,
                     });
                 } else {
@@ -370,7 +377,7 @@ export const useGameStore = create((set, get) => ({
     },
 
     pullTrigger: () => {
-        const { bulletsShot, bulletPosition, currentTurn, lives, roundsSurvived, shotHistory, isAnimating } = get();
+        const { bulletsShot, bulletPosition, currentTurn, lives, roundsSurvived, shotHistory, isAnimating, globalLeaderboard } = get();
 
         if (isAnimating) return; // Prevent multiple triggers during animation
 
@@ -393,14 +400,20 @@ export const useGameStore = create((set, get) => ({
                 if (currentTurn === "player") {
                     const newLives = lives - 1;
                     if (newLives <= 0) {
-                        // Game over - add to leaderboard
+                        // Game over - check if qualifies for leaderboard
                         setTimeout(() => playDeath(), 300);
-                        const newLeaderboard = addToLeaderboard(roundsSurvived);
+
+                        // Check if score qualifies for leaderboard
+                        const qualifiesForLeaderboard =
+                            roundsSurvived > 0 &&
+                            (globalLeaderboard.length < 100 ||
+                                roundsSurvived > (globalLeaderboard[globalLeaderboard.length - 1]?.rounds || 0));
+
                         set({
                             bulletsShot: shotNumber,
                             shotHistory: newHistory,
                             gamePhase: "gameOver",
-                            leaderboard: newLeaderboard,
+                            showNameInput: qualifiesForLeaderboard,
                             isAnimating: false,
                         });
                     } else {
@@ -558,10 +571,48 @@ export const useGameStore = create((set, get) => ({
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
             triggerSequenceWillFire: null,
+            showNameInput: false,
+            submittedRank: null,
+            playerName: null,
         });
+
+        // Reload leaderboard
+        get().loadGlobalLeaderboard();
     },
 
     // Audio actions
     setVolume: (volume) => set({ volume }),
     setMuted: (isMuted) => set({ isMuted }),
+
+    // Global leaderboard actions
+    loadGlobalLeaderboard: async () => {
+        set({ globalLeaderboardLoading: true });
+        try {
+            const leaderboard = await fetchGlobalLeaderboard();
+            set({ globalLeaderboard: leaderboard, globalLeaderboardLoading: false });
+        } catch {
+            set({ globalLeaderboardLoading: false });
+        }
+    },
+
+    submitToGlobalLeaderboard: async (name) => {
+        const { roundsSurvived } = get();
+        const result = await submitScore(name, roundsSurvived);
+        set({
+            globalLeaderboard: result.leaderboard || [],
+            submittedRank: result.rank,
+            playerName: name,
+            showNameInput: false,
+        });
+        return result;
+    },
+
+    skipNameInput: () => {
+        set({ showNameInput: false });
+    },
 }));
+
+// Initialize by loading global leaderboard
+if (typeof window !== "undefined") {
+    useGameStore.getState().loadGlobalLeaderboard();
+}

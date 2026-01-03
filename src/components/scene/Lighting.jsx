@@ -1,76 +1,76 @@
 export function Lighting() {
   return (
     <>
-      {/* Very dim ambient light - barely visible bunker */}
-      <ambientLight intensity={5} color="#4a4540" />
+      {/* Ambient light - warm bunker glow */}
+      <ambientLight intensity={2} color="#3d2d1f" />
 
-      {/* Main overhead light - single bare bulb in cage */}
+      {/* Main pendant light - center over table */}
       <pointLight
-        position={[0, 6.3, 0]}
-        intensity={40}
-        color="#ffcc88"
+        position={[0, 4.3, 0]}
+        intensity={50}
+        color="#ffaa66"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0005}
         decay={2}
-        distance={12}
-      />
-
-      {/* Main overhead light - single bare bulb in cage */}
-      <pointLight
-        position={[0,2, 5]}
-        intensity={30}
-        color="#ffcc88"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0005}
-        decay={2}
-        distance={12}
-      />
-
-      {/* Subtle blue emergency light glow from back corner */}
-      <pointLight
-        position={[-5, 2, -6]}
-        intensity={10}
-        color="orange"
-        distance={4}
-        decay={3}
-      />
-
-      {/* Dim red indicator light on junction box */}
-      <pointLight
-        position={[-6.5, 6.5, 2]}
-        intensity={0.5}
-        color="#ff3322"
-        distance={3}
-      />
-
-      {/* Subtle backlight from ventilation - very dim */}
-      <pointLight
-        position={[-4, 6, -6.8]}
-        intensity={15}
-        color="#667788"
-        distance={4}
-      />
-
-      {/* Rim light from side - creates subtle depth */}
-      <pointLight
-        position={[6, 3, -3]}
-        intensity={3}
-        color="#554433"
         distance={8}
+      />
+
+      {/* Lantern/lamp glow on table */}
+      <pointLight
+        position={[0.8, 1.5, -0.2]}
+        intensity={5}
+        color="#ff9944"
+        distance={4}
         decay={2}
       />
 
-      {/* Subtle fill light under table area */}
+      {/* Warm fill from floor area */}
       <pointLight
-        position={[0, 0.5, 0]}
-        intensity={1}
-        color="#886644"
-        distance={5}
+        position={[0, 0.3, 0]}
+        intensity={5}
+        color="#553322"
+        distance={4}
+        decay={2}
+      />
+
+      {/* Left corner accent */}
+      <pointLight
+        position={[-3, 1.5, -2.5]}
+        intensity={15}
+        color="#ff9955"
+        distance={4}
+        decay={2}
+      />
+
+      {/* Right corner accent */}
+      <pointLight
+        position={[3, 1.5, -2.5]}
+        intensity={15}
+        color="#ff9955"
+        distance={4}
+        decay={2}
+      />
+
+      {/* Hemisphere light for color variation */}
+      <hemisphereLight
+        args={['#332211', '#554433', 0.6]}
+        position={[0, 4, 0]}
+      />
+
+      {/* Main spotlight on table */}
+      <spotLight
+        position={[0, 4, 0]}
+        angle={0.6}
+        penumbra={0.5}
+        intensity={40}
+        color="#ffbb77"
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+        target-position={[0, 0.9, 0]}
+        decay={2}
+        distance={6}
       />
     </>
   );
 }
-
-

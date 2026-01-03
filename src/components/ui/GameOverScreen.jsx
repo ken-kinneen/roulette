@@ -4,14 +4,16 @@ import './GameOverScreen.css';
 export function GameOverScreen() {
   const gamePhase = useGameStore((state) => state.gamePhase);
   const roundsSurvived = useGameStore((state) => state.roundsSurvived);
-  const leaderboard = useGameStore((state) => state.leaderboard);
+  const globalLeaderboard = useGameStore((state) => state.globalLeaderboard);
+  const submittedRank = useGameStore((state) => state.submittedRank);
+  const playerName = useGameStore((state) => state.playerName);
+  const showNameInput = useGameStore((state) => state.showNameInput);
   const resetGame = useGameStore((state) => state.resetGame);
 
-  if (gamePhase !== 'gameOver') return null;
+  // Don't show if name input modal is open
+  if (gamePhase !== 'gameOver' || showNameInput) return null;
 
-  const bestScore = leaderboard.length > 0 ? leaderboard[0].rounds : 0;
-  const isNewBest = roundsSurvived > 0 && roundsSurvived >= bestScore;
-  const rank = leaderboard.findIndex(entry => entry.rounds === roundsSurvived) + 1;
+  const hasSubmitted = submittedRank !== null;
 
   return (
     <div className="game-over-screen">
@@ -31,36 +33,37 @@ export function GameOverScreen() {
 
         <h1 className="game-over-title">GAME OVER</h1>
         
-        {isNewBest && (
-          <div className="new-best-banner">
-            <span className="trophy">🏆</span>
-            <span>NEW HIGH SCORE!</span>
-          </div>
-        )}
-        
         <div className="final-stats">
           <div className="final-stat main">
             <span className="final-stat-label">ROUNDS SURVIVED</span>
-            <span className={`final-stat-value ${isNewBest ? 'best' : ''}`}>{roundsSurvived}</span>
+            <span className="final-stat-value">{roundsSurvived}</span>
           </div>
-          {rank > 0 && (
+          {hasSubmitted && (
             <div className="final-stat">
-              <span className="final-stat-label">LEADERBOARD RANK</span>
-              <span className="final-stat-value rank">#{rank}</span>
+              <span className="final-stat-label">GLOBAL RANK</span>
+              <span className="final-stat-value rank">#{submittedRank}</span>
             </div>
           )}
         </div>
 
-        {leaderboard.length > 0 && (
+        {hasSubmitted && playerName && (
+          <div className="submitted-banner">
+            <span className="submitted-icon">✓</span>
+            <span>Score submitted as <strong>{playerName}</strong></span>
+          </div>
+        )}
+
+        {globalLeaderboard.length > 0 && (
           <div className="game-over-leaderboard">
-            <div className="leaderboard-title-small">TOP SCORES</div>
+            <div className="leaderboard-title-small">🌍 GLOBAL LEADERBOARD</div>
             <div className="top-scores">
-              {leaderboard.slice(0, 5).map((entry, index) => (
+              {globalLeaderboard.slice(0, 10).map((entry, index) => (
                 <div 
                   key={entry.id} 
-                  className={`top-score-entry ${entry.rounds === roundsSurvived && index === rank - 1 ? 'current' : ''}`}
+                  className={`top-score-entry ${hasSubmitted && index === submittedRank - 1 ? 'current' : ''}`}
                 >
                   <span className="top-rank">#{index + 1}</span>
+                  <span className="top-name">{entry.name}</span>
                   <span className="top-rounds">{entry.rounds}</span>
                 </div>
               ))}

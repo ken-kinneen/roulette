@@ -1,39 +1,22 @@
 import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { cloneAndFixMaterials } from '../../utils/modelUtils';
 
 export function Table() {
-  const { scene } = useGLTF('/table.glb');
+  const { scene } = useGLTF('/table2.glb');
 
-  // Clone and prepare the scene
   const clonedScene = useMemo(() => {
     if (!scene) return null;
-    const clone = scene.clone();
-    // Enable shadows on all meshes
-    clone.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-    return clone;
+    return cloneAndFixMaterials(scene);
   }, [scene]);
 
   if (!clonedScene) return null;
 
-  // Position the table model
-  // Adjust scale and position to match the previous table dimensions
   return (
-    <group 
-      position={[0, 0, 0]} 
-      rotation={[0, 0, 0]}
-      scale={1}
-    >
+    <group position={[0, 0, 0]} rotation={[0, 0, 0]} scale={1}>
       <primitive object={clonedScene} />
     </group>
   );
 }
 
-// Preload the model
-useGLTF.preload('/table.glb');
-
-
+useGLTF.preload('/table2.glb');

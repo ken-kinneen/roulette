@@ -25,28 +25,36 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     // Use SkeletonUtils.clone for proper cloning of animated models with skeletons
     const clone = SkeletonUtils.clone(scene);
     
-    // Share materials between character instances to reduce texture units
+    // Fix materials - reduce shininess, fix transparency
     clone.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         
-        // Share materials
+        // Fix material issues
         if (child.material) {
+          const fixMaterial = (mat) => {
+            // Clone material to avoid sharing issues
+            const newMat = mat.clone();
+            
+            // Reduce shininess - increase roughness, reduce metalness
+            newMat.roughness = Math.max(newMat.roughness || 0.5, 0.7);
+            newMat.metalness = Math.min(newMat.metalness || 0, 0.1);
+            
+            // Fix transparency issues
+            newMat.transparent = false;
+            newMat.alphaTest = 0.5;
+            newMat.depthWrite = true;
+            newMat.depthTest = true;
+            newMat.side = THREE.FrontSide;
+            
+            return newMat;
+          };
+          
           if (Array.isArray(child.material)) {
-            child.material = child.material.map(mat => {
-              const cacheKey = mat.uuid;
-              if (!characterMaterialCache.has(cacheKey)) {
-                characterMaterialCache.set(cacheKey, mat);
-              }
-              return characterMaterialCache.get(cacheKey);
-            });
+            child.material = child.material.map(fixMaterial);
           } else {
-            const cacheKey = child.material.uuid;
-            if (!characterMaterialCache.has(cacheKey)) {
-              characterMaterialCache.set(cacheKey, child.material);
-            }
-            child.material = characterMaterialCache.get(cacheKey);
+            child.material = fixMaterial(child.material);
           }
         }
       }

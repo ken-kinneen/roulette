@@ -1,21 +1,27 @@
+import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { cloneAndFixMaterials } from '../../utils/modelUtils';
 
-export function Ashtray() {
+export function Ashtray({ scale = 1 }) {
   const { scene } = useGLTF('/ashtray.glb');
   
-  // Position on the table - left side
-  // Table height is approximately 1.275 (legHeight 1.2 + tableTop.height/2 0.075)
+  const clonedScene = useMemo(() => {
+    if (!scene) return null;
+    return cloneAndFixMaterials(scene);
+  }, [scene]);
+
+  if (!clonedScene) return null;
+  
   const tableHeight = 1.2;
   
   return (
     <primitive 
-      object={scene.clone()} 
-      position={[-0.8, tableHeight  , 0.3]} 
-      scale={0.5}
+      object={clonedScene} 
+      position={[-0.8, tableHeight, 0.3]} 
+      scale={scale * 0.1}
       rotation={[0, Math.PI / 4, 0]}
     />
   );
 }
 
 useGLTF.preload('/ashtray.glb');
-

@@ -1,481 +1,419 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
-export function Room() {
-  const roomSize = { width: 14, height: 8, depth: 14 };
+// Seeded random for deterministic texture generation
+function seededRandom(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
 
-  // Create rustic wooden floor texture
+// Create barrel vault geometry for arched ceiling
+function createBarrelVaultGeometry(width, height, depth, segments = 32) {
+  const geometry = new THREE.BufferGeometry();
+  const vertices = [];
+  const indices = [];
+  const uvs = [];
+  const normals = [];
+  
+  const halfWidth = width / 2;
+  const halfDepth = depth / 2;
+  
+  // Create the curved ceiling (half cylinder)
+  for (let z = 0; z <= segments; z++) {
+    const zPos = (z / segments) * depth - halfDepth;
+    
+    for (let a = 0; a <= segments; a++) {
+      const angle = (a / segments) * Math.PI; // 0 to PI for half circle
+      const x = Math.cos(angle) * halfWidth;
+      const y = Math.sin(angle) * height;
+      
+      vertices.push(x, y, zPos);
+      
+      // Normal points inward (toward center)
+      normals.push(-Math.cos(angle), -Math.sin(angle), 0);
+      
+      // UVs
+      uvs.push(a / segments * 2, z / segments * 2);
+    }
+  }
+  
+  // Create indices for the vault
+  for (let z = 0; z < segments; z++) {
+    for (let a = 0; a < segments; a++) {
+      const current = z * (segments + 1) + a;
+      const next = current + segments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  
+  return geometry;
+}
+
+// Create archway geometry
+function ArchWay({ position, size = [3, 4, 0.5], rotation = [0, 0, 0] }) {
+  const archGeometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    const [width, height] = [size[0], size[1]];
+    const archRadius = width / 2;
+    const straightHeight = height - archRadius;
+    
+    // Outer rectangle
+    shape.moveTo(-width / 2 - 0.3, 0);
+    shape.lineTo(-width / 2 - 0.3, height + 0.3);
+    shape.lineTo(width / 2 + 0.3, height + 0.3);
+    shape.lineTo(width / 2 + 0.3, 0);
+    shape.lineTo(-width / 2 - 0.3, 0);
+    
+    // Inner arch hole
+    const hole = new THREE.Path();
+    hole.moveTo(-width / 2, 0);
+    hole.lineTo(-width / 2, straightHeight);
+    hole.absarc(0, straightHeight, archRadius, Math.PI, 0, true);
+    hole.lineTo(width / 2, 0);
+    hole.lineTo(-width / 2, 0);
+    
+    shape.holes.push(hole);
+    
+    const extrudeSettings = {
+      steps: 1,
+      depth: size[2],
+      bevelEnabled: false,
+    };
+    
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  }, [size]);
+  
+  return (
+    <mesh 
+      geometry={archGeometry} 
+      position={position} 
+      rotation={rotation}
+      castShadow 
+      receiveShadow
+    >
+      <meshStandardMaterial color="#1a1512" roughness={0.95} />
+    </mesh>
+  );
+}
+
+export function Room() {
+  const roomSize = { width: 8, height: 5, depth: 8 };
+
+  // Create aged, dirty concrete/stone floor texture
   const floorTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
+    let seed = 12345; // Fixed seed for deterministic results
+    const rand = () => { seed++; return seededRandom(seed); };
     
-    // Base wood color - much darker, aged brown
-    ctx.fillStyle = '#1a0f08';
+    // Base - dark dirty stone
+    ctx.fillStyle = '#1a1410';
     ctx.fillRect(0, 0, 1024, 1024);
     
-    // Draw wood planks with more detail
-    const plankHeight = 85;
-    const plankWidths = [200, 300, 250, 274]; // Varied plank widths
-    
-    for (let y = 0; y < 1024; y += plankHeight) {
-      let xOffset = 0;
+    // Stone/tile pattern with irregular shapes
+    for (let i = 0; i < 200; i++) {
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 40 + rand() * 120;
       
-      // Draw individual planks in this row
-      while (xOffset < 1024) {
-        const plankWidth = plankWidths[Math.floor(Math.random() * plankWidths.length)];
-        
-        // Base plank color - darker with more variation
-        const colorVariation = Math.random() * 15 - 7;
-        const r = Math.floor(35 + colorVariation);
-        const g = Math.floor(20 + colorVariation);
-        const b = Math.floor(10 + colorVariation);
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillRect(xOffset, y, plankWidth, plankHeight);
-        
-        // Detailed wood grain - multiple layers
-        for (let i = 0; i < 15; i++) {
-          const grainY = y + (i / 15) * plankHeight;
-          const opacity = 0.15 + Math.random() * 0.25;
-          ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
-          ctx.lineWidth = 0.5 + Math.random() * 1.5;
-          ctx.beginPath();
-          
-          // Wavy grain pattern
-          ctx.moveTo(xOffset, grainY);
-          for (let x = xOffset; x < xOffset + plankWidth; x += 10) {
-            const wave = Math.sin(x * 0.1) * 2;
-            ctx.lineTo(x, grainY + wave);
-          }
-          ctx.stroke();
-        }
-        
-        // Darker grain lines
-        for (let i = 0; i < 8; i++) {
-          ctx.strokeStyle = `rgba(10, 5, 2, ${0.3 + Math.random() * 0.4})`;
-          ctx.lineWidth = 1 + Math.random() * 2;
-          ctx.beginPath();
-          const grainY = y + Math.random() * plankHeight;
-          ctx.moveTo(xOffset, grainY);
-          ctx.lineTo(xOffset + plankWidth, grainY);
-          ctx.stroke();
-        }
-        
-        // Plank vertical separations
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(xOffset + plankWidth, y);
-        ctx.lineTo(xOffset + plankWidth, y + plankHeight);
-        ctx.stroke();
-        
-        // Wood knots - larger and more detailed
-        const numKnots = Math.floor(Math.random() * 3);
-        for (let k = 0; k < numKnots; k++) {
-          const knotX = xOffset + Math.random() * plankWidth;
-          const knotY = y + Math.random() * plankHeight;
-          const knotSize = 4 + Math.random() * 8;
-          
-          // Knot center
-          ctx.fillStyle = 'rgba(15, 8, 3, 0.7)';
-          ctx.beginPath();
-          ctx.arc(knotX, knotY, knotSize, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Knot rings
-          for (let ring = 1; ring < 4; ring++) {
-            ctx.strokeStyle = `rgba(20, 10, 5, ${0.3 - ring * 0.08})`;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(knotX, knotY, knotSize + ring * 2, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-        }
-        
-        // Scratches and wear marks
-        for (let s = 0; s < 5; s++) {
-          const scratchX = xOffset + Math.random() * plankWidth;
-          const scratchY = y + Math.random() * plankHeight;
-          const scratchLength = 10 + Math.random() * 40;
-          const scratchAngle = Math.random() * Math.PI;
-          
-          ctx.strokeStyle = `rgba(25, 15, 8, ${0.3 + Math.random() * 0.3})`;
-          ctx.lineWidth = 0.5 + Math.random();
-          ctx.beginPath();
-          ctx.moveTo(scratchX, scratchY);
-          ctx.lineTo(
-            scratchX + Math.cos(scratchAngle) * scratchLength,
-            scratchY + Math.sin(scratchAngle) * scratchLength
-          );
-          ctx.stroke();
-        }
-        
-        xOffset += plankWidth;
+      const brightness = 20 + rand() * 25;
+      ctx.fillStyle = `rgb(${brightness + 5}, ${brightness}, ${brightness - 3})`;
+      
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 6; j++) {
+        const angle = (j / 6) * Math.PI * 2 + rand() * 0.3;
+        const r = size * (0.7 + rand() * 0.3);
+        ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
       }
-      
-      // Plank horizontal separations
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(1024, y);
-      ctx.stroke();
-    }
-    
-    // Add large stains across multiple planks
-    for (let i = 0; i < 12; i++) {
-      const stainX = Math.random() * 1024;
-      const stainY = Math.random() * 1024;
-      const stainSize = 30 + Math.random() * 80;
-      
-      const gradient = ctx.createRadialGradient(stainX, stainY, 0, stainX, stainY, stainSize);
-      gradient.addColorStop(0, 'rgba(10, 5, 2, 0.5)');
-      gradient.addColorStop(0.5, 'rgba(15, 8, 4, 0.3)');
-      gradient.addColorStop(1, 'rgba(20, 10, 5, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(stainX, stainY, stainSize, 0, Math.PI * 2);
+      ctx.closePath();
       ctx.fill();
     }
     
-    // Water damage stains (elongated)
-    for (let i = 0; i < 8; i++) {
-      const stainX = Math.random() * 1024;
-      const stainY = Math.random() * 1024;
-      ctx.fillStyle = `rgba(8, 4, 2, ${0.3 + Math.random() * 0.3})`;
-      ctx.beginPath();
-      ctx.ellipse(stainX, stainY, 15 + Math.random() * 30, 40 + Math.random() * 60, Math.random() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    
-    // Overall darkening and aging overlay
-    const overlay = ctx.createLinearGradient(0, 0, 1024, 1024);
-    overlay.addColorStop(0, 'rgba(5, 3, 1, 0.2)');
-    overlay.addColorStop(1, 'rgba(10, 5, 2, 0.3)');
-    ctx.fillStyle = overlay;
-    ctx.fillRect(0, 0, 1024, 1024);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
-    return texture;
-  }, []);
-
-  // Create vintage distressed wallpaper texture inspired by the white tile reference
-  const wallpaperTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-    
-    // Base wallpaper color - aged cream/beige similar to the tile base
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, 1024, 1024);
-    
-    // Add subtle paper texture
-    for (let i = 0; i < 3000; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const brightness = 220 + Math.random() * 30;
-      ctx.fillStyle = `rgba(${brightness}, ${brightness - 5}, ${brightness - 10}, ${0.1 + Math.random() * 0.1})`;
-      ctx.fillRect(x, y, 1, 1);
-    }
-    
-     
-    
-    // Add vertical stripe pattern (subtle)
-    for (let x = 0; x < 1024; x += 64) {
-      ctx.strokeStyle = 'rgba(200, 190, 175, 0.15)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, 1024);
-      ctx.stroke();
-    }
-   
-    
-    // Water damage drips and runs
-    for (let i = 0; i < 15; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 400; // Start from upper portion
-      const dripLength = 100 + Math.random() * 300;
+    // Dirt and debris patches
+    for (let i = 0; i < 80; i++) {
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 30 + rand() * 100;
       
-      const gradient = ctx.createLinearGradient(x, y, x, y + dripLength);
-      gradient.addColorStop(0, `rgba(139, 90, 43, ${0.35 + Math.random() * 0.2})`);
-      gradient.addColorStop(0.3, `rgba(150, 100, 50, ${0.25 + Math.random() * 0.15})`);
-      gradient.addColorStop(1, 'rgba(170, 130, 80, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.ellipse(x, y + dripLength / 2, 8 + Math.random() * 12, dripLength / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    
-    // Mold/mildew patches - greenish-brown
-    for (let i = 0; i < 18; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const size = 50 + Math.random() * 100;
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-      gradient.addColorStop(0, `rgba(90, 95, 70, ${0.25 + Math.random() * 0.2})`);
-      gradient.addColorStop(0.6, `rgba(110, 115, 85, ${0.15 + Math.random() * 0.1})`);
-      gradient.addColorStop(1, 'rgba(130, 130, 100, 0)');
+      gradient.addColorStop(0, 'rgba(35, 25, 15, 0.6)');
+      gradient.addColorStop(0.5, 'rgba(25, 18, 10, 0.4)');
+      gradient.addColorStop(1, 'rgba(20, 15, 8, 0)');
+      
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
     
-    // Grout-line inspired cracks and seams
-    for (let i = 0; i < 20; i++) {
-      const startX = Math.random() * 1024;
-      const startY = Math.random() * 1024;
-      const length = 60 + Math.random() * 200;
-      const angle = Math.random() * Math.PI * 2;
-      
-      ctx.strokeStyle = `rgba(120, 90, 60, ${0.25 + Math.random() * 0.2})`;
-      ctx.lineWidth = 1 + Math.random() * 2;
+    // Scattered debris/pebbles
+    for (let i = 0; i < 500; i++) {
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 1 + rand() * 4;
+      const brightness = 15 + rand() * 20;
+      ctx.fillStyle = `rgba(${brightness + 10}, ${brightness + 5}, ${brightness}, ${0.5 + rand() * 0.5})`;
       ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      
-      let currentX = startX;
-      let currentY = startY;
-      const segments = 5 + Math.floor(Math.random() * 8);
-      for (let j = 0; j < segments; j++) {
-        const segmentLength = length / segments;
-        const deviation = (Math.random() - 0.5) * 20;
-        currentX += Math.cos(angle) * segmentLength + deviation;
-        currentY += Math.sin(angle) * segmentLength + deviation;
-        ctx.lineTo(currentX, currentY);
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Cracks
+    for (let i = 0; i < 15; i++) {
+      ctx.strokeStyle = `rgba(5, 3, 2, ${0.4 + rand() * 0.4})`;
+      ctx.lineWidth = 1 + rand() * 2;
+      ctx.beginPath();
+      let x = rand() * 1024;
+      let y = rand() * 1024;
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 8; j++) {
+        x += (rand() - 0.5) * 80;
+        y += (rand() - 0.5) * 80;
+        ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
     
-    // Yellowing/aging effect - overall tint
-    ctx.fillStyle = 'rgba(210, 180, 130, 0.15)';
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(3, 3);
+    return texture;
+  }, []);
+
+  // Create weathered concrete/stone wall texture - bunker style
+  const wallTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+    
+    // Base - dark weathered concrete
+    ctx.fillStyle = '#1f1a15';
     ctx.fillRect(0, 0, 1024, 1024);
     
- 
+    // Concrete texture - mottled pattern
+    for (let i = 0; i < 5000; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const brightness = 25 + Math.random() * 30;
+      ctx.fillStyle = `rgba(${brightness + 8}, ${brightness + 3}, ${brightness}, ${0.1 + Math.random() * 0.15})`;
+      ctx.fillRect(x, y, 2 + Math.random() * 4, 2 + Math.random() * 4);
+    }
     
-    // Dirt accumulation at bottom (like the tile grout)
+    // Water stains and seepage - vertical drips
+    for (let i = 0; i < 25; i++) {
+      const x = Math.random() * 1024;
+      const startY = Math.random() * 200;
+      const length = 200 + Math.random() * 600;
+      
+      const gradient = ctx.createLinearGradient(x, startY, x, startY + length);
+      gradient.addColorStop(0, 'rgba(60, 45, 30, 0.5)');
+      gradient.addColorStop(0.3, 'rgba(50, 38, 25, 0.4)');
+      gradient.addColorStop(0.7, 'rgba(40, 30, 20, 0.25)');
+      gradient.addColorStop(1, 'rgba(35, 25, 15, 0)');
+      
+      ctx.fillStyle = gradient;
+      const width = 15 + Math.random() * 40;
+      ctx.fillRect(x - width/2, startY, width, length);
+    }
+    
+    // Rust stains - orange/brown patches
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const size = 40 + Math.random() * 120;
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+      gradient.addColorStop(0, 'rgba(80, 45, 20, 0.4)');
+      gradient.addColorStop(0.4, 'rgba(60, 35, 15, 0.25)');
+      gradient.addColorStop(1, 'rgba(45, 30, 15, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(x, y, size * (0.8 + Math.random() * 0.4), size, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Mold/mildew - dark greenish patches
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const size = 60 + Math.random() * 150;
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+      gradient.addColorStop(0, 'rgba(30, 35, 25, 0.35)');
+      gradient.addColorStop(0.5, 'rgba(25, 30, 20, 0.2)');
+      gradient.addColorStop(1, 'rgba(20, 25, 18, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Cracks and damage
+    for (let i = 0; i < 20; i++) {
+      ctx.strokeStyle = `rgba(10, 8, 5, ${0.5 + Math.random() * 0.4})`;
+      ctx.lineWidth = 1 + Math.random() * 3;
+      ctx.beginPath();
+      let x = Math.random() * 1024;
+      let y = Math.random() * 1024;
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 5 + Math.random() * 5; j++) {
+        x += (Math.random() - 0.5) * 60;
+        y += Math.random() * 40;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    
+    // Chipped/damaged areas - lighter patches
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const size = 10 + Math.random() * 40;
+      ctx.fillStyle = `rgba(50, 42, 35, ${0.3 + Math.random() * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Dirt accumulation at bottom
     const dirtGradient = ctx.createLinearGradient(0, 0, 0, 1024);
-    dirtGradient.addColorStop(0, 'rgba(100, 80, 50, 0)');
-    dirtGradient.addColorStop(0.6, 'rgba(100, 80, 50, 0.08)');
-    dirtGradient.addColorStop(1, 'rgba(90, 70, 40, 0.2)');
+    dirtGradient.addColorStop(0, 'rgba(25, 18, 12, 0)');
+    dirtGradient.addColorStop(0.7, 'rgba(25, 18, 12, 0.1)');
+    dirtGradient.addColorStop(1, 'rgba(20, 15, 10, 0.4)');
     ctx.fillStyle = dirtGradient;
-    ctx.fillRect(0, 0, 1024, 1024);
-    
-    // Final aging overlay - subtle vignette
-    const vignetteGradient = ctx.createRadialGradient(512, 512, 200, 512, 512, 700);
-    vignetteGradient.addColorStop(0, 'rgba(180, 160, 130, 0)');
-    vignetteGradient.addColorStop(1, 'rgba(120, 100, 70, 0.12)');
-    ctx.fillStyle = vignetteGradient;
     ctx.fillRect(0, 0, 1024, 1024);
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 2);
+    texture.repeat.set(2, 1);
     return texture;
   }, []);
 
-  // Create shared materials to reduce texture units
+  // Barrel vault geometry
+  const vaultGeometry = useMemo(() => {
+    return createBarrelVaultGeometry(roomSize.width, roomSize.height, roomSize.depth, 48);
+  }, [roomSize.width, roomSize.height, roomSize.depth]);
+
+  // Materials
   const floorMaterial = useMemo(() => 
     new THREE.MeshStandardMaterial({
       map: floorTexture,
-      roughness: 0.85,
+      roughness: 0.9,
       metalness: 0.0,
     }), [floorTexture]
   );
 
-  const wallpaperMaterial = useMemo(() => 
+  const wallMaterial = useMemo(() => 
     new THREE.MeshStandardMaterial({
-      map: wallpaperTexture,
-      roughness: 0.85,
+      map: wallTexture,
+      roughness: 0.95,
       metalness: 0.0,
-      envMapIntensity: 0.2,
-    }), [wallpaperTexture]
+      side: THREE.BackSide,
+    }), [wallTexture]
+  );
+
+  const concreteMaterial = useMemo(() => 
+    new THREE.MeshStandardMaterial({
+      color: '#1a1512',
+      roughness: 0.95,
+      metalness: 0.0,
+    }), []
   );
 
   return (
     <group>
-      {/* Rustic Wooden Floor */}
+      {/* Dirty Stone Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow material={floorMaterial}>
         <planeGeometry args={[roomSize.width, roomSize.depth]} />
       </mesh>
 
-      {/* Back Wall - vintage distressed wallpaper */}
-      <mesh position={[0, roomSize.height / 2, -roomSize.depth / 2]} receiveShadow material={wallpaperMaterial}>
-        <planeGeometry args={[roomSize.width, roomSize.height]} />
+      {/* Barrel Vault Ceiling/Walls - the curved bunker structure */}
+      <mesh geometry={vaultGeometry} material={wallMaterial} receiveShadow />
+
+      {/* Back Wall - closes off the vault */}
+      <mesh position={[0, roomSize.height / 2, -roomSize.depth / 2]} receiveShadow>
+        <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
+        <meshStandardMaterial map={wallTexture} roughness={0.95} />
       </mesh>
 
-      {/* Left Wall - vintage distressed wallpaper */}
-      <mesh
-        rotation={[0, Math.PI / 2, 0]}
-        position={[-roomSize.width / 2, roomSize.height / 2, 0]}
-        receiveShadow
-        material={wallpaperMaterial}
-      >
-        <planeGeometry args={[roomSize.depth, roomSize.height]} />
-      </mesh>
-
-      {/* Right Wall - vintage distressed wallpaper */}
-      <mesh
-        rotation={[0, -Math.PI / 2, 0]}
-        position={[roomSize.width / 2, roomSize.height / 2, 0]}
-        receiveShadow
-        material={wallpaperMaterial}
-      >
-        <planeGeometry args={[roomSize.depth, roomSize.height]} />
-      </mesh>
-
-      {/* Front Wall (South) - vintage distressed wallpaper */}
+      {/* Front Wall - closes off the vault with archway feel */}
       <mesh 
         rotation={[0, Math.PI, 0]}
         position={[0, roomSize.height / 2, roomSize.depth / 2]} 
         receiveShadow
-        material={wallpaperMaterial}
       >
-        <planeGeometry args={[roomSize.width, roomSize.height]} />
+        <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
+        <meshStandardMaterial map={wallTexture} roughness={0.95} />
       </mesh>
 
-      {/* Ceiling - industrial concrete */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, roomSize.height, 0]}>
-        <planeGeometry args={[roomSize.width, roomSize.depth]} />
-        <meshStandardMaterial 
-          color="#1a1816" 
-          roughness={0.98}
-        />
-      </mesh>
- 
-
-      {/* Cross pipe */}
-      <mesh position={[0, roomSize.height - 0.3, -4]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.08, 0.08, 6, 8]} />
-        <meshStandardMaterial 
-          color="#2a2622" 
-          roughness={0.7}
-          metalness={0.4}
-        />
-      </mesh>
-
-      {/* Ventilation duct - back wall */}
-      <mesh position={[-4, 6, -roomSize.depth / 2 + 0.1]} castShadow>
-        <boxGeometry args={[1.2, 0.6, 0.3]} />
-        <meshStandardMaterial 
-          color="#1a1715" 
-          roughness={0.6}
-          metalness={0.5}
-        />
-      </mesh>
-
-      {/* Ventilation grate */}
-      {[...Array(8)].map((_, i) => (
-        <mesh 
-          key={i}
-          position={[-4 + (i * 0.15) - 0.525, 6, -roomSize.depth / 2 + 0.15]}
-        >
-          <boxGeometry args={[0.02, 0.5, 0.05]} />
-          <meshStandardMaterial color="#0a0908" />
+      {/* Main pendant light - center, high up */}
+      <group position={[0, 4.5, 0]}>
+        {/* Wire */}
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.008, 0.008, 0.6, 4]} />
+          <meshStandardMaterial color="#1a1614" metalness={0.3} roughness={0.7} />
         </mesh>
-      ))}
-
-      {/* Electrical conduit on left wall */}
-      <mesh 
-        position={[-roomSize.width / 2 + 0.1, 5, 2]} 
-        rotation={[0, 0, Math.PI / 2]}
-        castShadow
-      >
-        <cylinderGeometry args={[0.04, 0.04, 4, 6]} />
-        <meshStandardMaterial 
-          color="#3a3632" 
-          roughness={0.8}
-          metalness={0.3}
-        />
-      </mesh>
-
-      {/* Junction box */}
-      <mesh position={[-roomSize.width / 2 + 0.15, 6.5, 2]} castShadow>
-        <boxGeometry args={[0.3, 0.4, 0.2]} />
-        <meshStandardMaterial 
-          color="#2a2622" 
-          roughness={0.7}
-          metalness={0.4}
-        />
-      </mesh>
-
-      {/* Support beam - left corner */}
-      <mesh position={[-roomSize.width / 2 + 0.5, roomSize.height / 2, -roomSize.depth / 2 + 0.5]} castShadow>
-        <boxGeometry args={[0.3, roomSize.height, 0.3]} />
-        <meshStandardMaterial 
-          color="#1a1614" 
-          roughness={0.9}
-          metalness={0.2}
-        />
-      </mesh>
-
-      {/* Support beam - right corner */}
-      <mesh position={[roomSize.width / 2 - 0.5, roomSize.height / 2, -roomSize.depth / 2 + 0.5]} castShadow>
-        <boxGeometry args={[0.3, roomSize.height, 0.3]} />
-        <meshStandardMaterial 
-          color="#1a1614" 
-          roughness={0.9}
-          metalness={0.2}
-        />
-      </mesh>
-
-      {/* Hanging light fixture cage */}
-      <group position={[0, 6.5, 0]}>
-        {/* Wire/chain */}
-        <mesh position={[0, 0.5, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, 1, 4]} />
-          <meshStandardMaterial color="#1a1614" metalness={0.6} roughness={0.4} />
+        {/* Bulb housing */}
+        <mesh position={[0, -0.1, 0]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.15, 8]} />
+          <meshStandardMaterial color="#1a1614" metalness={0.2} roughness={0.8} />
         </mesh>
-        {/* Cage frame */}
-        <mesh>
-          <cylinderGeometry args={[0.25, 0.25, 0.4, 6, 1, true]} />
+        {/* Warm glowing bulb */}
+        <mesh position={[0, -0.2, 0]}>
+          <sphereGeometry args={[0.06, 16, 16]} />
           <meshStandardMaterial 
-            color="#2a2622" 
-            metalness={0.5} 
-            roughness={0.6}
-            side={THREE.DoubleSide}
-            wireframe
+            color="#ffaa55" 
+            emissive="#ff8833"
+            emissiveIntensity={2}
           />
         </mesh>
       </group>
 
-    
+      {/* Map on back wall - scaled for smaller room */}
+      <mesh position={[0, 2.5, -3.9]} receiveShadow>
+        <planeGeometry args={[1.5, 1]} />
+        <meshStandardMaterial color="#3a3528" roughness={0.95} />
+      </mesh>
+      {/* Map pins */}
+      {[[0.2, 0.2], [-0.3, 0.1], [0, -0.2], [-0.2, -0.3]].map(([ox, oy], i) => (
+        <mesh key={i} position={[ox, 2.5 + oy, -3.85]}>
+          <sphereGeometry args={[0.02, 8, 8]} />
+          <meshStandardMaterial color={i % 2 === 0 ? "#aa3322" : "#886633"} />
+        </mesh>
+      ))}
 
-      {/* Crates in corner - adds to warehouse feel */}
-      <mesh position={[-5, 0.5, -5]} castShadow receiveShadow>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial 
-          color="#2a2420" 
-          roughness={0.95}
-        />
+      {/* Metal bucket - corner */}
+      <mesh position={[2.8, 0.2, -2.5]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.15, 0.12, 0.4, 8]} />
+        <meshStandardMaterial color="#2a2622" roughness={0.85} metalness={0.15} />
       </mesh>
 
-      <mesh position={[-5, 1.5, -5]} castShadow receiveShadow>
-        <boxGeometry args={[0.8, 0.8, 0.8]} />
-        <meshStandardMaterial 
-          color="#2d2723" 
-          roughness={0.95}
-        />
-      </mesh>
-
-      <mesh position={[5, 0.4, -5.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.8, 0.8, 0.8]} />
-        <meshStandardMaterial 
-          color="#282420" 
-          roughness={0.95}
-        />
-      </mesh>
+      {/* Floor debris - scaled for smaller room */}
+      {[
+        [-1.5, 0.02, -2, 0.1],
+        [1, 0.02, -2.5, 0.08],
+        [-0.5, 0.02, 1.5, 0.07],
+      ].map(([x, y, z, s], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0, i * 0.5, 0]}>
+          <boxGeometry args={[s, 0.015, s * 0.6]} />
+          <meshStandardMaterial color="#252018" roughness={0.95} />
+        </mesh>
+      ))}
     </group>
   );
 }
-
-
-

@@ -11,6 +11,10 @@ import { CashBowl } from './CashBowl';
 import { StainedGlassLamp } from './StainedGlassLamp';
 import { VintageLantern } from './VintageLantern';
 import { Lighting } from './Lighting';
+import { Ammo } from './Ammo';
+import { Cards } from './Cards';
+import { Sandbags } from './Sandbags';
+import { Rifle } from './Rifle';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
 import { ScreenFlash } from './ScreenFlash';
@@ -29,10 +33,10 @@ function CameraController() {
   const userInteractingRef = useRef(false);
   const interactionTimeoutRef = useRef(null);
   
-  // Camera orbit parameters - higher and further back
-  const radius = 5.5; // Distance from center
-  const height = 3.5; // Height above table
-  const lookAtTarget = new THREE.Vector3(0, 1, 0); // Look at table center
+  // Camera orbit parameters - adjusted for smaller room (8x5x8)
+  const radius = 3.5; // Smaller radius for smaller room
+  const height = 2.8; // Lower height
+  const lookAtTarget = new THREE.Vector3(0, 0.9, 0); // Look at table center
   
   // Detect when turn changes to trigger camera reset
   useEffect(() => {
@@ -134,18 +138,19 @@ function CameraController() {
       <PerspectiveCamera 
         ref={cameraRef}
         makeDefault 
-        position={[0, 3.5, 5.5]} 
-        fov={50} 
+        position={[0, 2.8, 3.5]} 
+        fov={65}
+        near={0.1}
       />
       <OrbitControls 
         ref={controlsRef}
-        target={[0, 1, 0]}
+        target={[0, 0.9, 0]}
         enableDamping
         dampingFactor={0.05}
-        minDistance={3}
-        maxDistance={8}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.5}
+        minDistance={2.5}
+        maxDistance={4}
+        minPolarAngle={Math.PI / 5}
+        maxPolarAngle={Math.PI / 2.3}
         enablePan={false}
       />
     </>
@@ -156,21 +161,36 @@ export function GameScene() {
   return (
     <Canvas shadows style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
       <CameraController />
+      
+      {/* Atmospheric fog for smaller bunker */}
+      <fog attach="fog" args={['#1a1510', 4, 12]} />
+      <color attach="background" args={['#0a0806']} />
 
- 
       <Lighting />
       <Room />
       <Table />
       <WhiskeyBottle />
-      <Ashtray scale={5} />
+      <Ashtray scale={4} />
       <CashBowl />
+      
+      {/* Ammo box on table */}
+      <Ammo position={[-0.9, 0.95, -0.2]} rotation={[0, 0.6, 0]} scale={0.8} />
+      
+      {/* Cards scattered on table */}
+      <Cards position={[-0.4, 0.95, 0.3]} rotation={[0, -0.4, 0]} scale={0.8} />
       
       {/* Stained Glass Lamp on table */}
       <StainedGlassLamp />
       
-      {/* Vintage Lanterns on walls */}
-      <VintageLantern position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} />
-      <VintageLantern position={[6.5, 2, 0]} rotation={[0, -Math.PI / 2, 0]} />
+      {/* Sandbags in corner - scaled for smaller room */}
+      <Sandbags position={[-2.8, 0, -2.5]} rotation={[0, 0.4, 0]} scale={0.9} />
+      
+      {/* Rifles leaning against sandbags */}
+      <Rifle position={[-3, 0, -2]} rotation={[0.15, 0.7, 0.1]} scale={1} />
+      <Rifle position={[-2.5, 0, -1.8]} rotation={[0.12, 0.5, 0.08]} scale={1} />
+      
+      {/* Vintage Lantern - one on back wall */}
+      <VintageLantern position={[-3, 2, -3.5]} rotation={[0, Math.PI / 4, 0]} />
 
       {/* Player (you) - facing the table from the front */}
       <Character position={[0, 0, 1.2]} rotation={[0, Math.PI, 0]} isPlayer />

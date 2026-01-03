@@ -6,6 +6,7 @@ import { ScreenFlashOverlay } from './components/ui/ScreenFlashOverlay';
 import { AudioControls } from './components/ui/AudioControls';
 import { HelpButton } from './components/ui/HelpButton';
 import { Leaderboard } from './components/ui/Leaderboard';
+import { NameInputModal } from './components/ui/NameInputModal';
 import { DevTools } from './components/ui/DevTools';
 import './index.css';
 
@@ -19,6 +20,7 @@ function App() {
       <Leaderboard />
       <GamePanel />
       <GameOverScreen />
+      <NameInputModal />
       <AudioControls />
       <DevTools />
     </div>
