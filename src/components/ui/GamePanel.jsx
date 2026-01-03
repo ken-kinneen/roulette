@@ -311,6 +311,14 @@ export function GamePanel() {
                     )}
                   </div>
                 )}
+                {triggerSequencePhase === 'sigh' && (
+                  <div className="sequence-phase sigh-phase">
+                    <span className="sequence-icon sigh-icon">😮‍💨</span>
+                    <span className="sequence-text">
+                      {triggerSequenceShooter === 'player' ? 'Still alive...' : 'Vlad survives...'}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

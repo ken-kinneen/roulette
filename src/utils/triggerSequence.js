@@ -10,7 +10,8 @@ const SOUND_PATHS = {
     cylinderSpin: "/sounds/Chamber spin sound.mp3",
     triggerPull: null, // Not added yet
     gunshot: "/sounds/gunshot.mp3",
-    emptyClick: "/sounds/Handgun Trigger Pull Empty - Sound Effect for editing.mp3",
+    emptyClick: "/sounds/emptyShot.mp3",
+    sigh: "/sounds/sigh.mp3", // Relief sigh when gun clicks empty
 };
 
 // Store original music volume to restore later
@@ -99,14 +100,16 @@ export function runTriggerSequence({ onPhaseChange, onComplete, willFire, volume
     originalMusicVolume = getMusicVolume();
     setMusicVolume(originalMusicVolume * 0.2);
 
-    // Sequence timing (in ms)
+    // Sequence timing (in ms) - SNAPPY timings for tight gameplay feel
     const TIMING = {
-        dropDuration: 500, // Suspenseful drop
-        heartbeatStart: 1500, // When heartbeat begins
-        spinStart: 4000, // Cylinder spin
-        pullStart: 5500, // Trigger pull
-        resultStart: 6000, // Final result (shot or empty)
-        endSequence: 8000, // Sequence ends
+        dropDuration: 300, // Quick suspense drop
+        heartbeatStart: 800, // Heartbeat begins early
+        spinStart: 1500, // Cylinder spin
+        pullStart: 4000, // Trigger pull - 500ms after spin starts
+        resultStart: 4000, // Result almost instant after pull (150ms)
+        sighStart: 5500, // Sigh plays 350ms after the click
+        endSequenceShot: 5300, // Quick wrap up for gunshot
+        endSequenceEmpty: 8500, // Plenty of time for sigh to play (~2.2s)
     };
 
     // Phase 1: Suspenseful Drop
@@ -137,7 +140,7 @@ export function runTriggerSequence({ onPhaseChange, onComplete, willFire, volume
         }, TIMING.pullStart)
     );
 
-    // Phase 5: Result
+    // Phase 5: Result - INSTANT after trigger pull
     sequenceTimeouts.push(
         setTimeout(() => {
             onPhaseChange?.("result");
@@ -150,13 +153,25 @@ export function runTriggerSequence({ onPhaseChange, onComplete, willFire, volume
         }, TIMING.resultStart)
     );
 
+    // Phase 6: Sigh of relief (only on empty click) - plays AFTER the click
+    if (!willFire) {
+        sequenceTimeouts.push(
+            setTimeout(() => {
+                onPhaseChange?.("sigh");
+                playSound("sigh", volume * 0.9);
+            }, TIMING.sighStart)
+        );
+    }
+
     // Sequence Complete - restore music volume
+    // Use different timing: quick for gunshot, longer for empty (let sigh play)
+    const endTime = willFire ? TIMING.endSequenceShot : TIMING.endSequenceEmpty;
     sequenceTimeouts.push(
         setTimeout(() => {
             stopAllTriggerSounds();
             setMusicVolume(originalMusicVolume); // Restore music volume
             onComplete?.(willFire ? "shot" : "empty");
-        }, TIMING.endSequence)
+        }, endTime)
     );
 
     // Return cleanup function

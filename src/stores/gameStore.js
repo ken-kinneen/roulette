@@ -105,7 +105,7 @@ export const useGameStore = create((set, get) => ({
     playerName: null,
 
     // Trigger sequence state
-    triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', null
+    triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', 'sigh', null
     triggerSequenceCleanup: null,
     triggerSequenceShooter: null, // 'player' or 'ai' - who is pulling the trigger
     triggerSequenceWillFire: null, // true/false - whether the bullet will fire (for UI)
@@ -177,7 +177,7 @@ export const useGameStore = create((set, get) => ({
                 cardGamePhase: "result",
             });
 
-            // After showing result, someone shoots immediately
+            // After showing result, someone shoots - SNAPPY timing
             // If correct: opponent shoots
             // If wrong: guesser shoots
             setTimeout(() => {
@@ -189,12 +189,10 @@ export const useGameStore = create((set, get) => ({
                     isAnimating: false,
                 });
 
-                // Start the trigger sequence for whoever must shoot
-                setTimeout(() => {
-                    get().startTriggerSequence(shooter);
-                }, 500);
-            }, 1500);
-        }, 600);
+                // Start the trigger sequence immediately - no extra delay
+                get().startTriggerSequence(shooter);
+            }, 800);
+        }, 400);
     },
 
     // Start the automatic trigger sequence for either player or AI
@@ -286,7 +284,7 @@ export const useGameStore = create((set, get) => ({
                 });
             }
         } else {
-            // Empty chamber - start a new card game round
+            // Empty chamber - start a new card game round (snappy transition)
             const deck = createDeck();
             const currentCard = deck.pop();
 
@@ -308,7 +306,7 @@ export const useGameStore = create((set, get) => ({
             setTimeout(() => {
                 playCardSlide();
                 set({ cardGamePhase: "guessing" });
-            }, 800);
+            }, 500);
         }
     },
 
@@ -334,10 +332,10 @@ export const useGameStore = create((set, get) => ({
         // Show Vlad's prediction before revealing
         set({ lastGuess: guess, cardGamePhase: "vladPredicting" });
 
-        // After showing prediction, reveal the card
+        // After showing prediction, reveal the card - snappy timing
         setTimeout(() => {
             get().makeGuess(guess);
-        }, 1500);
+        }, 800);
     },
 
     // Actions

@@ -105,7 +105,7 @@ function ArchWay({ position, size = [3, 4, 0.5], rotation = [0, 0, 0] }) {
 }
 
 export function Room() {
-  const roomSize = { width: 8, height: 5, depth: 8 };
+  const roomSize = { width: 8, height: 3.5, depth: 8 };
 
   // Load and process the map texture - make white transparent, darken, add vignette
   const [mapTexture, setMapTexture] = useState(null);
@@ -218,6 +218,108 @@ export function Room() {
       texture.repeat.set(1.5, 1.5);
       texture.needsUpdate = true;
       setFloorTexture(texture);
+    };
+  }, []);
+
+  // Load back wall texture (behind the dresser)
+  const [backWallTexture, setBackWallTexture] = useState(null);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/image/wallb.png';
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+      
+      // Process pixels: darken and add vignette
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          
+          // Calculate vignette factor
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const vignette = 1 - Math.pow(dist / maxDist, 1.8) * 0.4;
+          
+          // Darken and apply vignette
+          const darkenFactor = 0.45 * vignette;
+          data[i] = Math.floor(data[i] * darkenFactor);
+          data[i + 1] = Math.floor(data[i + 1] * darkenFactor);
+          data[i + 2] = Math.floor(data[i + 2] * darkenFactor);
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(1, 1);
+      texture.needsUpdate = true;
+      setBackWallTexture(texture);
+    };
+  }, []);
+
+  // Load side wall texture (for barrel vault sides)
+  const [sideWallTexture, setSideWallTexture] = useState(null);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/image/walls.png';
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+      
+      // Process pixels: slight darken and add subtle vignette
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          
+          // Calculate subtle vignette factor
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const vignette = 1 - Math.pow(dist / maxDist, 2) * 0.15;
+          
+          // Light darken to match scene mood but keep visible
+          const darkenFactor = 0.75 * vignette;
+          data[i] = Math.floor(data[i] * darkenFactor);
+          data[i + 1] = Math.floor(data[i + 1] * darkenFactor);
+          data[i + 2] = Math.floor(data[i + 2] * darkenFactor);
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(2, 1);
+      texture.needsUpdate = true;
+      setSideWallTexture(texture);
     };
   }, []);
 
@@ -353,11 +455,19 @@ export function Room() {
 
   const wallMaterial = useMemo(() => 
     new THREE.MeshStandardMaterial({
-      map: wallTexture,
+      map: sideWallTexture || wallTexture,
       roughness: 0.95,
       metalness: 0.0,
       side: THREE.BackSide,
-    }), [wallTexture]
+    }), [sideWallTexture, wallTexture]
+  );
+
+  const backWallMaterial = useMemo(() => 
+    new THREE.MeshStandardMaterial({
+      map: backWallTexture || wallTexture,
+      roughness: 0.95,
+      metalness: 0.0,
+    }), [backWallTexture, wallTexture]
   );
 
   return (
@@ -371,9 +481,8 @@ export function Room() {
       <mesh geometry={vaultGeometry} material={wallMaterial} receiveShadow />
 
       {/* Back Wall - closes off the vault */}
-      <mesh position={[0, roomSize.height / 2, -roomSize.depth / 2]} receiveShadow>
+      <mesh position={[0, roomSize.height / 2, -roomSize.depth / 2]} receiveShadow material={backWallMaterial}>
         <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
-        <meshStandardMaterial map={wallTexture} roughness={0.95} />
       </mesh>
 
       {/* Front Wall - closes off the vault with archway feel */}
@@ -383,7 +492,7 @@ export function Room() {
         receiveShadow
       >
         <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
-        <meshStandardMaterial map={wallTexture} roughness={0.95} />
+        <meshStandardMaterial map={sideWallTexture || wallTexture} roughness={0.95} />
       </mesh>
 
       {/* Main pendant light - center, high up */}

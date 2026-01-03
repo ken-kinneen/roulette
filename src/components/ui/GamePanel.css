@@ -762,6 +762,51 @@
   color: #c45c45;
 }
 
+/* Sigh phase - relief after empty click */
+.trigger-sequence-zone.phase-sigh {
+  background: linear-gradient(180deg, rgba(40, 80, 60, 0.3) 0%, rgba(20, 50, 40, 0.5) 100%);
+  animation: sighRelief 2s ease-out;
+}
+
+.sigh-phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sigh-phase .sigh-icon {
+  font-size: 2.5rem;
+  animation: sighBreath 1.5s ease-in-out;
+}
+
+.sigh-phase .sequence-text {
+  color: rgba(150, 200, 170, 0.9);
+  font-size: 1.2rem;
+  font-style: italic;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes sighRelief {
+  0% { 
+    background: linear-gradient(180deg, rgba(80, 50, 50, 0.4) 0%, rgba(40, 25, 25, 0.6) 100%);
+  }
+  100% { 
+    background: linear-gradient(180deg, rgba(40, 80, 60, 0.3) 0%, rgba(20, 50, 40, 0.5) 100%);
+  }
+}
+
+@keyframes sighBreath {
+  0% { transform: scale(1.2); opacity: 0; }
+  20% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes dropShake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
