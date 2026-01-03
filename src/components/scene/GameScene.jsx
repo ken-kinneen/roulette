@@ -14,7 +14,6 @@ import { Lighting } from './Lighting';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
 import { ScreenFlash } from './ScreenFlash';
-import { CardTable } from './CardTable';
 import { useGameStore } from '../../stores/gameStore';
 import * as THREE from 'three';
 
@@ -181,9 +180,6 @@ export function GameScene() {
 
       {/* Revolver held by current player */}
       <Revolver />
-
-      {/* Card game on table */}
-      <CardTable />
 
       {/* Effects */}
       <MuzzleFlash />

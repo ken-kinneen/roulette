@@ -12,8 +12,8 @@ const SUIT_SYMBOLS = {
 const SUIT_COLORS = {
   hearts: '#c45c45',
   diamonds: '#c45c45',
-  clubs: '#d4c4a8',
-  spades: '#d4c4a8',
+  clubs: '#1a1816',
+  spades: '#1a1816',
 };
 
 export function HiLoUI() {
@@ -24,11 +24,9 @@ export function HiLoUI() {
   const cardGamePhase = useGameStore((state) => state.cardGamePhase);
   const lastGuess = useGameStore((state) => state.lastGuess);
   const lastGuessResult = useGameStore((state) => state.lastGuessResult);
-  const cardGameWinner = useGameStore((state) => state.cardGameWinner);
   const isAnimating = useGameStore((state) => state.isAnimating);
   const makeGuess = useGameStore((state) => state.makeGuess);
   const aiMakeGuess = useGameStore((state) => state.aiMakeGuess);
-  const pullTrigger = useGameStore((state) => state.pullTrigger);
   
   const aiTimeoutRef = useRef(null);
 
@@ -47,25 +45,33 @@ export function HiLoUI() {
     };
   }, [gamePhase, currentTurn, cardGamePhase, isAnimating, aiMakeGuess]);
 
-  // Don't show during non-card phases
-  if (gamePhase !== 'cardGame' && gamePhase !== 'playing') return null;
+  // Only show during card game phase
+  if (gamePhase !== 'cardGame') return null;
 
-  const isPlayerGuessing = gamePhase === 'cardGame' && currentTurn === 'player' && cardGamePhase === 'guessing';
-  const isAIGuessing = gamePhase === 'cardGame' && currentTurn === 'ai' && cardGamePhase === 'guessing';
+  const isPlayerGuessing = currentTurn === 'player' && cardGamePhase === 'guessing';
+  const isAIGuessing = currentTurn === 'ai' && cardGamePhase === 'guessing';
   const isRevealing = cardGamePhase === 'revealing' || cardGamePhase === 'result';
-  const mustShoot = gamePhase === 'playing' && cardGameWinner !== null;
 
-  const renderCardDisplay = (card, label) => {
+  const renderCard = (card, label, isNew = false) => {
     if (!card) return null;
     const symbol = SUIT_SYMBOLS[card.suit];
     const color = SUIT_COLORS[card.suit];
     
     return (
-      <div className="card-display">
-        <div className="card-label">{label}</div>
-        <div className="card-face">
-          <span className="card-value" style={{ color }}>{card.value}</span>
-          <span className="card-suit" style={{ color }}>{symbol}</span>
+      <div className={`card-container ${isNew ? 'new-card' : 'current-card'}`}>
+        <div className="card-label-top">{label}</div>
+        <div className={`playing-card ${isNew ? 'card-reveal' : ''}`}>
+          <div className="card-corner top-left">
+            <span className="corner-value" style={{ color }}>{card.value}</span>
+            <span className="corner-suit" style={{ color }}>{symbol}</span>
+          </div>
+          <div className="card-center">
+            <span className="center-suit" style={{ color }}>{symbol}</span>
+          </div>
+          <div className="card-corner bottom-right">
+            <span className="corner-value" style={{ color }}>{card.value}</span>
+            <span className="corner-suit" style={{ color }}>{symbol}</span>
+          </div>
         </div>
       </div>
     );
@@ -73,95 +79,98 @@ export function HiLoUI() {
 
   return (
     <div className="hilo-ui">
-      {/* Cards display */}
-      <div className="cards-section">
-        {currentCard && renderCardDisplay(currentCard, 'CURRENT CARD')}
-        
-        {isRevealing && nextCard && (
-          <div className="vs-indicator">→</div>
-        )}
-        
-        {isRevealing && nextCard && renderCardDisplay(nextCard, 'DRAWN CARD')}
-      </div>
-
-      {/* Dealing phase */}
-      {cardGamePhase === 'dealing' && (
-        <div className="dealing-notice">
-          <span className="dealing-text">DEALING CARD</span>
-          <span className="loading-dots">
-            <span>.</span><span>.</span><span>.</span>
+      <div className="hilo-container">
+        {/* Turn indicator */}
+        <div className="turn-banner">
+          <span className={`turn-text ${currentTurn === 'player' ? 'player' : 'ai'}`}>
+            {currentTurn === 'player' ? 'YOUR TURN' : "AI'S TURN"}
           </span>
+          <span className="turn-divider">|</span>
+          <span className="phase-text">HI-LO CARDS</span>
         </div>
-      )}
 
-      {/* Player's turn to guess */}
-      {isPlayerGuessing && !isAnimating && (
-        <div className="guess-section">
-          <div className="guess-prompt">Will the next card be HIGHER or LOWER?</div>
-          <div className="guess-buttons">
-            <button 
-              className="guess-button higher-button"
-              onClick={() => makeGuess('higher')}
-              disabled={isAnimating}
-            >
-              <span className="button-arrow">▲</span>
-              <span className="button-text">HIGHER</span>
-            </button>
-            <button 
-              className="guess-button lower-button"
-              onClick={() => makeGuess('lower')}
-              disabled={isAnimating}
-            >
-              <span className="button-arrow">▼</span>
-              <span className="button-text">LOWER</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* AI's turn to guess */}
-      {isAIGuessing && (
-        <div className="ai-guess-notice">
-          <span className="ai-thinking-text">AI IS GUESSING</span>
-          <span className="loading-dots">
-            <span>.</span><span>.</span><span>.</span>
-          </span>
-        </div>
-      )}
-
-      {/* Result display */}
-      {cardGamePhase === 'result' && lastGuessResult && (
-        <div className={`result-display ${lastGuessResult}`}>
-          <div className="result-who">
-            {currentTurn === 'player' ? 'YOU' : 'AI'} GUESSED {lastGuess?.toUpperCase()}
-          </div>
-          <div className="result-text">
-            {lastGuessResult === 'correct' ? 'CORRECT!' : 'WRONG!'}
-          </div>
-        </div>
-      )}
-
-      {/* Must shoot notice */}
-      {mustShoot && (
-        <div className="shoot-notice">
-          <div className="shoot-text">
-            {currentTurn === 'player' 
-              ? 'YOU LOST THE CARD GAME - PULL THE TRIGGER!'
-              : 'AI LOST - THEY MUST SHOOT!'
-            }
-          </div>
-          {currentTurn === 'player' && (
-            <button 
-              className="trigger-button"
-              onClick={pullTrigger}
-              disabled={isAnimating}
-            >
-              {isAnimating ? 'FIRING...' : 'PULL TRIGGER'}
-            </button>
+        {/* Cards area */}
+        <div className="cards-area">
+          {/* Current card */}
+          {currentCard && renderCard(currentCard, 'CURRENT')}
+          
+          {/* Arrow / VS indicator */}
+          {isRevealing && nextCard && (
+            <div className="card-arrow">
+              <span className="arrow-icon">→</span>
+            </div>
+          )}
+          
+          {/* Drawn card */}
+          {isRevealing && nextCard && renderCard(nextCard, 'DRAWN', true)}
+          
+          {/* Placeholder when waiting */}
+          {!isRevealing && (
+            <div className="card-container placeholder-card">
+              <div className="card-label-top">NEXT?</div>
+              <div className="playing-card card-back">
+                <div className="card-back-pattern">
+                  <span>?</span>
+                </div>
+              </div>
+            </div>
           )}
         </div>
-      )}
+
+        {/* Action area */}
+        <div className="action-area">
+          {/* Dealing phase */}
+          {cardGamePhase === 'dealing' && (
+            <div className="status-message">
+              <span>DEALING CARD</span>
+              <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+          )}
+
+          {/* Player's turn to guess */}
+          {isPlayerGuessing && !isAnimating && (
+            <div className="guess-controls">
+              <span className="guess-question">Higher or Lower?</span>
+              <div className="guess-buttons">
+                <button 
+                  className="guess-btn higher"
+                  onClick={() => makeGuess('higher')}
+                >
+                  <span className="btn-arrow">▲</span>
+                  <span className="btn-label">HIGHER</span>
+                </button>
+                <button 
+                  className="guess-btn lower"
+                  onClick={() => makeGuess('lower')}
+                >
+                  <span className="btn-arrow">▼</span>
+                  <span className="btn-label">LOWER</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* AI's turn */}
+          {isAIGuessing && (
+            <div className="status-message ai-thinking">
+              <span>AI THINKING</span>
+              <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+          )}
+
+          {/* Result display */}
+          {cardGamePhase === 'result' && lastGuessResult && (
+            <div className={`result-banner ${lastGuessResult}`}>
+              <span className="result-label">
+                {currentTurn === 'player' ? 'YOU' : 'AI'} GUESSED {lastGuess?.toUpperCase()}
+              </span>
+              <span className="result-outcome">
+                {lastGuessResult === 'correct' ? '✓ CORRECT!' : '✗ WRONG!'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-

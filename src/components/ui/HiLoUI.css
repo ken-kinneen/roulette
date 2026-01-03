@@ -1,103 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap');
+
 .hilo-ui {
   position: absolute;
-  bottom: 180px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
+  justify-content: center;
   z-index: 60;
-  font-family: 'Courier New', monospace;
+  pointer-events: none;
 }
 
-/* Cards section */
-.cards-section {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.card-display {
+.hilo-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 20px 40px 30px;
+  background: linear-gradient(180deg, rgba(15, 12, 10, 0.85) 0%, rgba(20, 18, 15, 0.95) 100%);
+  border: 1px solid rgba(138, 122, 106, 0.2);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  min-width: 500px;
 }
 
-.card-label {
-  font-size: 0.55rem;
+/* Turn banner */
+.turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
   letter-spacing: 0.15rem;
-  color: #6a5a4a;
-  margin-bottom: 5px;
 }
 
-.card-face {
-  background: rgba(248, 244, 236, 0.95);
-  border: 2px solid rgba(138, 122, 106, 0.5);
-  border-radius: 8px;
-  padding: 15px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 70px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-
-.card-value {
-  font-size: 1.8rem;
+.turn-text {
   font-weight: 700;
-  line-height: 1;
 }
 
-.card-suit {
-  font-size: 2rem;
-  line-height: 1;
-  margin-top: 2px;
+.turn-text.player {
+  color: #8a9a7a;
 }
 
-.vs-indicator {
-  font-size: 1.5rem;
-  color: #6a5a4a;
-  animation: pulse 1s ease-in-out infinite;
+.turn-text.ai {
+  color: #c4a145;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+.turn-divider {
+  color: rgba(138, 122, 106, 0.4);
 }
 
-/* Dealing notice */
-.dealing-notice {
+.turn-banner .phase-text {
+  color: rgba(212, 196, 168, 0.6);
+}
+
+/* Cards area */
+.cards-area {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
-  background: rgba(10, 9, 8, 0.85);
-  border: 1px solid rgba(138, 122, 106, 0.3);
-  color: #8a7a6a;
-  font-size: 0.8rem;
-  letter-spacing: 0.15rem;
+  gap: 30px;
+  margin-bottom: 20px;
 }
 
-.dealing-text {
-  margin-right: 5px;
+.card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* Guess section */
-.guess-section {
+.card-label-top {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2rem;
+  color: rgba(212, 196, 168, 0.5);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.current-card .card-label-top {
+  color: rgba(138, 154, 122, 0.8);
+}
+
+.new-card .card-label-top {
+  color: rgba(196, 161, 69, 0.9);
+}
+
+/* Playing card styles */
+.playing-card {
+  position: relative;
+  width: 100px;
+  height: 140px;
+  background: linear-gradient(145deg, #f8f5f0 0%, #e8e4dc 100%);
+  border-radius: 10px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-reveal {
+  animation: cardReveal 0.4s ease-out;
+}
+
+@keyframes cardReveal {
+  0% {
+    transform: scale(0.8) rotateY(-90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05) rotateY(0deg);
+  }
+  100% {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.top-left {
+  top: 8px;
+  left: 10px;
+}
+
+.bottom-right {
+  bottom: 8px;
+  right: 10px;
+  transform: rotate(180deg);
+}
+
+.corner-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.corner-suit {
+  font-size: 1rem;
+  margin-top: -2px;
+}
+
+.card-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-suit {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+/* Card back */
+.card-back {
+  background: linear-gradient(145deg, #4a3525 0%, #2a1f18 100%);
+  border: 3px solid #5a4535;
+}
+
+.card-back-pattern {
+  width: 80%;
+  height: 85%;
+  border: 2px solid rgba(212, 175, 125, 0.3);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(212, 175, 125, 0.1) 5px,
+    rgba(212, 175, 125, 0.1) 10px
+  );
+}
+
+.card-back-pattern span {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  color: rgba(212, 175, 125, 0.4);
+}
+
+/* Arrow */
+.card-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+}
+
+.arrow-icon {
+  font-size: 2rem;
+  color: rgba(212, 175, 125, 0.6);
+  animation: arrowPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.4; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(5px); }
+}
+
+/* Action area */
+.action-area {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Status messages */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.1rem;
+  color: rgba(212, 196, 168, 0.7);
+}
+
+.status-message.ai-thinking {
+  color: #c4a145;
+}
+
+.loading-dots span {
+  animation: blink 1.4s infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0%, 60%, 100% { opacity: 1; }
+  30% { opacity: 0; }
+}
+
+/* Guess controls */
+.guess-controls {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
 }
 
-.guess-prompt {
-  font-size: 0.8rem;
+.guess-question {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
   letter-spacing: 0.1rem;
   color: #d4c4a8;
-  text-align: center;
-  padding: 8px 15px;
-  background: rgba(10, 9, 8, 0.85);
-  border: 1px solid rgba(138, 122, 106, 0.3);
 }
 
 .guess-buttons {
@@ -105,211 +265,102 @@
   gap: 20px;
 }
 
-.guess-button {
+.guess-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px 30px;
+  padding: 12px 28px;
   background: transparent;
   border: 2px solid;
-  font-family: 'Courier New', monospace;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.higher-button {
+.guess-btn.higher {
   border-color: #8a9a7a;
   color: #8a9a7a;
 }
 
-.higher-button:hover:not(:disabled) {
-  background: rgba(138, 154, 122, 0.2);
-  box-shadow: 0 0 25px rgba(138, 154, 122, 0.4);
-  transform: scale(1.05);
+.guess-btn.higher:hover {
+  background: rgba(138, 154, 122, 0.15);
+  box-shadow: 0 0 25px rgba(138, 154, 122, 0.3);
+  transform: translateY(-2px);
 }
 
-.lower-button {
+.guess-btn.lower {
   border-color: #c4a145;
   color: #c4a145;
 }
 
-.lower-button:hover:not(:disabled) {
-  background: rgba(196, 161, 69, 0.2);
-  box-shadow: 0 0 25px rgba(196, 161, 69, 0.4);
-  transform: scale(1.05);
+.guess-btn.lower:hover {
+  background: rgba(196, 161, 69, 0.15);
+  box-shadow: 0 0 25px rgba(196, 161, 69, 0.3);
+  transform: translateY(-2px);
 }
 
-.button-arrow {
-  font-size: 1.5rem;
+.btn-arrow {
+  font-size: 1.3rem;
   line-height: 1;
 }
 
-.button-text {
-  font-size: 0.8rem;
+.btn-label {
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.2rem;
-  margin-top: 5px;
-}
-
-.guess-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* AI guess notice */
-.ai-guess-notice {
-  display: flex;
-  align-items: center;
-  padding: 15px 30px;
-  background: rgba(10, 9, 8, 0.85);
-  border: 1px solid rgba(196, 161, 69, 0.4);
-  color: #c4a145;
-  font-size: 0.9rem;
   letter-spacing: 0.15rem;
+  margin-top: 4px;
 }
 
-.ai-thinking-text {
-  margin-right: 5px;
-}
-
-/* Loading dots animation */
-.loading-dots span {
-  animation: blink 1.4s infinite;
-}
-
-.loading-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loading-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes blink {
-  0%, 60%, 100% {
-    opacity: 1;
-  }
-  30% {
-    opacity: 0;
-  }
-}
-
-/* Result display */
-.result-display {
+/* Result banner */
+.result-banner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px 30px;
-  background: rgba(10, 9, 8, 0.9);
-  border: 2px solid;
+  gap: 4px;
+  padding: 12px 30px;
+  border-radius: 8px;
   animation: resultPop 0.3s ease-out;
 }
 
-@keyframes resultPop {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+.result-banner.correct {
+  background: rgba(138, 154, 122, 0.15);
+  border: 2px solid #8a9a7a;
 }
 
-.result-display.correct {
-  border-color: #8a9a7a;
+.result-banner.wrong {
+  background: rgba(196, 92, 69, 0.15);
+  border: 2px solid #c45c45;
 }
 
-.result-display.wrong {
-  border-color: #c45c45;
-}
-
-.result-who {
+.result-label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.1rem;
-  color: #8a7a6a;
-  margin-bottom: 5px;
+  color: rgba(212, 196, 168, 0.6);
 }
 
-.result-text {
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: 0.15rem;
+.result-outcome {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.05rem;
 }
 
-.result-display.correct .result-text {
+.result-banner.correct .result-outcome {
   color: #8a9a7a;
 }
 
-.result-display.wrong .result-text {
+.result-banner.wrong .result-outcome {
   color: #c45c45;
 }
 
-/* Shoot notice */
-.shoot-notice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  padding: 20px 35px;
-  background: rgba(10, 9, 8, 0.9);
-  border: 2px solid #c45c45;
-  animation: shakeIn 0.5s ease-out;
+@keyframes resultPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes shakeIn {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  10%, 30%, 50%, 70%, 90% {
-    transform: translateX(-3px);
-  }
-  20%, 40%, 60%, 80% {
-    transform: translateX(3px);
-  }
+/* Placeholder styling */
+.placeholder-card .playing-card {
+  opacity: 0.8;
 }
-
-.shoot-text {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.1rem;
-  color: #c45c45;
-  text-align: center;
-}
-
-/* Trigger button */
-.trigger-button {
-  background: transparent;
-  border: 2px solid #c45c45;
-  color: #c45c45;
-  padding: 12px 35px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.25rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.trigger-button:hover:not(:disabled) {
-  background: rgba(196, 92, 69, 0.2);
-  box-shadow: 0 0 30px rgba(196, 92, 69, 0.4);
-  transform: scale(1.05);
-}
-
-.trigger-button:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.trigger-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
