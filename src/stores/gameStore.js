@@ -9,6 +9,11 @@ import {
     playCardFlip,
     playCardSlide,
 } from "../utils/sounds";
+import {
+    runTriggerSequence,
+    clearSequenceTimeouts,
+    stopAllTriggerSounds,
+} from "../utils/triggerSequence";
 
 const getRandomBulletPosition = () => Math.floor(Math.random() * 6) + 1;
 
@@ -55,10 +60,14 @@ export const useGameStore = create((set, get) => ({
     bulletsShot: 0,
     bulletPosition: getRandomBulletPosition(),
     currentTurn: "player",
-    gamePhase: "start", // 'start', 'playing', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'levelComplete', 'gameOver'
+    gamePhase: "start", // 'start', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'levelComplete', 'gameOver'
     shotHistory: [],
     highestLevel: 1,
     isAnimating: false,
+    
+    // Trigger sequence state
+    triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', null
+    triggerSequenceCleanup: null,
 
     // Card game state
     deck: [],
@@ -144,18 +153,132 @@ export const useGameStore = create((set, get) => ({
                     });
                 } else {
                     // Loser must shoot the revolver
+                    const loser = currentTurn; // The one who guessed wrong
                     set({
                         cardGameWinner: currentTurn === "player" ? "ai" : "player",
-                        gamePhase: "playing", // Transition to revolver phase
                         cardGamePhase: "waiting",
                         isAnimating: false,
                     });
+                    
+                    // Start automatic trigger sequence for the loser
+                    if (loser === "player") {
+                        // Player lost - start the suspenseful sequence
+                        setTimeout(() => {
+                            get().startTriggerSequence();
+                        }, 500);
+                    } else {
+                        // AI lost - go to normal playing phase for AI
+                        set({ gamePhase: "playing" });
+                    }
                 }
             }, 1500);
         }, 600);
     },
+    
+    // Start the automatic trigger sequence for the player
+    startTriggerSequence: () => {
+        const { bulletsShot, bulletPosition } = get();
+        const shotNumber = bulletsShot + 1;
+        const willFire = shotNumber === bulletPosition;
+        
+        // Clean up any previous sequence
+        const prevCleanup = get().triggerSequenceCleanup;
+        if (prevCleanup) prevCleanup();
+        
+        set({
+            gamePhase: "triggerSequence",
+            triggerSequencePhase: "drop",
+            isAnimating: true,
+        });
+        
+        const cleanup = runTriggerSequence({
+            willFire,
+            volume: 0.7,
+            onPhaseChange: (phase) => {
+                set({ triggerSequencePhase: phase });
+            },
+            onComplete: (result) => {
+                // Sequence complete - now process the actual shot
+                set({ 
+                    triggerSequencePhase: null,
+                    triggerSequenceCleanup: null,
+                });
+                get().processTriggerResult(result === "shot");
+            },
+        });
+        
+        set({ triggerSequenceCleanup: cleanup });
+    },
+    
+    // Process the result after trigger sequence completes
+    processTriggerResult: (isBulletFired) => {
+        const { bulletsShot, currentTurn, lives, level, shotHistory } = get();
+        const shotNumber = bulletsShot + 1;
+        
+        const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
+        
+        if (isBulletFired) {
+            if (currentTurn === "player") {
+                const newLives = lives - 1;
+                if (newLives <= 0) {
+                    // Game over
+                    setTimeout(() => playDeath(), 300);
+                    set({
+                        bulletsShot: shotNumber,
+                        shotHistory: newHistory,
+                        gamePhase: "gameOver",
+                        highestLevel: Math.max(get().highestLevel, level),
+                        isAnimating: false,
+                    });
+                } else {
+                    // Player loses a life but continues
+                    setTimeout(() => playDeath(), 300);
+                    set({
+                        lives: newLives,
+                        bulletsShot: shotNumber,
+                        shotHistory: newHistory,
+                        gamePhase: "playerDead",
+                        isAnimating: false,
+                    });
+                }
+            } else {
+                // AI got shot - player wins the round
+                setTimeout(() => playLevelUp(), 500);
+                set({
+                    bulletsShot: shotNumber,
+                    shotHistory: newHistory,
+                    gamePhase: "aiDead",
+                    isAnimating: false,
+                });
+            }
+        } else {
+            // Empty chamber - start a new card game round
+            const deck = createDeck();
+            const currentCard = deck.pop();
 
-    // AI makes a guess
+            set({
+                bulletsShot: shotNumber,
+                currentTurn: currentTurn === "player" ? "ai" : "player",
+                shotHistory: newHistory,
+                gamePhase: "cardGame",
+                isAnimating: false,
+                deck,
+                currentCard,
+                nextCard: null,
+                cardGamePhase: "dealing",
+                lastGuess: null,
+                lastGuessResult: null,
+                cardGameWinner: null,
+            });
+
+            setTimeout(() => {
+                playCardSlide();
+                set({ cardGamePhase: "guessing" });
+            }, 800);
+        }
+    },
+
+    // Vlad makes a guess (with a phase to show his prediction first)
     aiMakeGuess: () => {
         const { currentCard, currentTurn, cardGamePhase, isAnimating } = get();
 
@@ -174,11 +297,23 @@ export const useGameStore = create((set, get) => ({
             guess = Math.random() > 0.5 ? "higher" : "lower";
         }
 
-        get().makeGuess(guess);
+        // Show Vlad's prediction before revealing
+        set({ lastGuess: guess, cardGamePhase: "vladPredicting" });
+
+        // After showing prediction, reveal the card
+        setTimeout(() => {
+            get().makeGuess(guess);
+        }, 1500);
     },
 
     // Actions
     startGame: () => {
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+        clearSequenceTimeouts();
+        stopAllTriggerSounds();
+        
         playCylinderSpin();
         const deck = createDeck();
         const currentCard = deck.pop();
@@ -199,6 +334,8 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
         });
 
         // Delay to show card dealing
@@ -298,6 +435,11 @@ export const useGameStore = create((set, get) => ({
     nextLevel: () => {
         const { level } = get();
         const newLevel = level + 1;
+        
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+        
         playCylinderSpin();
 
         const deck = createDeck();
@@ -320,6 +462,8 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
         });
 
         setTimeout(() => {
@@ -329,6 +473,10 @@ export const useGameStore = create((set, get) => ({
     },
 
     continueAfterDeath: () => {
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+        
         playCylinderSpin();
 
         const deck = createDeck();
@@ -348,6 +496,8 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
         });
 
         setTimeout(() => {
@@ -356,7 +506,13 @@ export const useGameStore = create((set, get) => ({
         }, 800);
     },
 
-    resetGame: () =>
+    resetGame: () => {
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+        clearSequenceTimeouts();
+        stopAllTriggerSounds();
+        
         set({
             level: 1,
             lives: 1,
@@ -373,7 +529,10 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
-        }),
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
+        });
+    },
 
     // Audio actions
     setVolume: (volume) => set({ volume }),

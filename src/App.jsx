@@ -1,11 +1,10 @@
 import { GameScene } from './components/scene/GameScene';
 import { StartScreen } from './components/ui/StartScreen';
-import { GameHUD } from './components/ui/GameHUD';
-import { HiLoUI } from './components/ui/HiLoUI';
+import { GamePanel } from './components/ui/GamePanel';
 import { GameOverScreen } from './components/ui/GameOverScreen';
 import { ScreenFlashOverlay } from './components/ui/ScreenFlashOverlay';
-import { MuteButton } from './components/ui/MuteButton';
-import { VolumeSlider } from './components/ui/VolumeSlider';
+import { AudioControls } from './components/ui/AudioControls';
+import { HelpButton } from './components/ui/HelpButton';
 import './index.css';
 
 function App() {
@@ -14,11 +13,10 @@ function App() {
       <GameScene />
       <ScreenFlashOverlay />
       <StartScreen />
-      <GameHUD />
-      <HiLoUI />
+      <HelpButton />
+      <GamePanel />
       <GameOverScreen />
-      <MuteButton />
-      <VolumeSlider />
+      <AudioControls />
     </div>
   );
 }

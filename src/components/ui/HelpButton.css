@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* Help Button - positioned above the game panel */
+.help-button {
+  position: fixed;
+  bottom: 280px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(8, 6, 5, 0.85);
+  border: 1px solid rgba(138, 122, 106, 0.35);
+  color: rgba(212, 196, 168, 0.7);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 65;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-button:hover {
+  background: rgba(15, 12, 10, 0.95);
+  border-color: rgba(196, 161, 69, 0.6);
+  color: #c4a145;
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 0 20px rgba(196, 161, 69, 0.25);
+}
+
+.help-icon {
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* Modal Overlay */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Box */
+.help-modal {
+  position: relative;
+  background: linear-gradient(145deg, #1a1512 0%, #0d0a08 100%);
+  border: 1px solid rgba(138, 122, 106, 0.3);
+  border-radius: 16px;
+  padding: 32px 40px;
+  max-width: 460px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.6),
+    0 0 1px rgba(196, 161, 69, 0.3);
+  animation: modalSlide 0.3s ease-out;
+}
+
+@keyframes modalSlide {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Close Button */
+.help-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: rgba(212, 196, 168, 0.5);
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.help-close:hover {
+  color: #c45c45;
+  transform: scale(1.15);
+}
+
+/* Title */
+.help-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.2rem;
+  color: #c4a145;
+  text-align: center;
+  margin: 0 0 28px 0;
+  border-bottom: 1px solid rgba(196, 161, 69, 0.2);
+  padding-bottom: 16px;
+}
+
+/* Content */
+.help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Rule Sections */
+.rule-section {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  border-left: 3px solid rgba(196, 161, 69, 0.4);
+  transition: all 0.2s ease;
+}
+
+.rule-section:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border-left-color: #c4a145;
+}
+
+.rule-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.rule-text {
+  flex: 1;
+}
+
+.rule-text h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #d4c4a8;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.05rem;
+}
+
+.rule-text p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(212, 196, 168, 0.65);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.rule-text strong {
+  color: #c4a145;
+  font-weight: 700;
+}
+
+/* Footer */
+.help-footer {
+  margin-top: 24px;
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid rgba(138, 122, 106, 0.15);
+}
+
+.help-tip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: rgba(196, 92, 69, 0.7);
+  letter-spacing: 0.1rem;
+}
+
+/* Scrollbar styling */
+.help-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.help-modal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.help-modal::-webkit-scrollbar-thumb {
+  background: rgba(138, 122, 106, 0.3);
+  border-radius: 3px;
+}
+
+.help-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 122, 106, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .help-button {
+    bottom: auto;
+    top: 20px;
+    right: 20px;
+    left: auto;
+    transform: none;
+  }
+
+  .help-button:hover {
+    transform: scale(1.1);
+  }
+
+  .help-modal {
+    padding: 24px 20px;
+    margin: 16px;
+  }
+
+  .help-title {
+    font-size: 1.6rem;
+  }
+
+  .rule-section {
+    padding: 12px;
+  }
+
+  .rule-icon {
+    font-size: 1.2rem;
+    min-width: 28px;
+  }
+}
+
