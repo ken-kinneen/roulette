@@ -174,17 +174,18 @@ export function GameScene() {
       <CashBowl />
       
       {/* Ammo box on table */}
-      <Ammo position={[-0.9, 0.95, -0.2]} rotation={[0, 0.6, 0]} scale={0.8} />
+      <Ammo position={[-0.5, 1.16, -0]} rotation={[0, 0.6, 0]} scale={0.8} />
       
       {/* Cards scattered on table */}
-      <Cards position={[-0.4, 0.95, 0.3]} rotation={[0, -0.4, 0]} scale={0.8} />
+      <Cards position={[0,  1.16, -0]} rotation={[0, Math.PI/2, 0]} scale={0.9} />
       
       {/* Stained Glass Lamp on table */}
       <StainedGlassLamp />
       
       {/* Sandbags in corner - scaled for smaller room */}
-      <Sandbags position={[-2.8, 0, -2.5]} rotation={[0, 0.4, 0]} scale={0.9} />
-      
+      <Sandbags position={[-2.2, 0, -2.8]} rotation={[0, 0.4, 0]} scale={1.2} />
+      <Sandbags position={[2.2, 0, -2.8]} rotation={[0, -0.4, 0]} scale={1.2} />
+
       {/* Rifles leaning against sandbags */}
       <Rifle position={[-3, 0, -2]} rotation={[0.15, 0.7, 0.1]} scale={1} />
       <Rifle position={[-2.5, 0, -1.8]} rotation={[0.12, 0.5, 0.08]} scale={1} />

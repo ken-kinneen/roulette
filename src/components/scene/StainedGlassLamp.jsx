@@ -25,8 +25,8 @@ export function StainedGlassLamp() {
       {/* Add point light to simulate lamp glow */}
       <pointLight
         position={[0, 0.5, 0]}
-        intensity={8}
-        distance={3}
+        intensity={3}
+        distance={2}
         color="#ff9944" 
       />
     </group>

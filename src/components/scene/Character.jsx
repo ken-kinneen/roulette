@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
@@ -6,48 +6,53 @@ import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { Chair } from './Chair';
 
-// Global material cache for all character instances
-const characterMaterialCache = new Map();
-
 export function Character({ position, rotation = [0, 0, 0], isPlayer = false, isAI = false }) {
   const groupRef = useRef();
+  const gunGroupRef = useRef();
+  
   const gamePhase = useGameStore((state) => state.gamePhase);
   const currentTurn = useGameStore((state) => state.currentTurn);
-
-  // Load the character model and animations
+  const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
+  const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
+  // Load the character model, animations, and gun
   const { scene } = useGLTF('/russian/character.glb');
   const { animations } = useGLTF('/russian/animations.glb');
+  const gunGltf = useGLTF('/revolver.glb');
   
+  // Clone the gun scene
+  const gunScene = useMemo(() => {
+    if (!gunGltf.scene) return null;
+    const clone = gunGltf.scene.clone();
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [gunGltf.scene]);
+
   // Clone the scene using SkeletonUtils for proper skinned mesh cloning
   const clonedScene = useMemo(() => {
     if (!scene) return null;
     
-    // Use SkeletonUtils.clone for proper cloning of animated models with skeletons
     const clone = SkeletonUtils.clone(scene);
     
-    // Fix materials - reduce shininess, fix transparency
     clone.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         
-        // Fix material issues
         if (child.material) {
           const fixMaterial = (mat) => {
-            // Clone material to avoid sharing issues
             const newMat = mat.clone();
-            
-            // Reduce shininess - increase roughness, reduce metalness
             newMat.roughness = Math.max(newMat.roughness || 0.5, 0.7);
             newMat.metalness = Math.min(newMat.metalness || 0, 0.1);
-            
-            // Fix transparency issues
             newMat.transparent = false;
             newMat.alphaTest = 0.5;
             newMat.depthWrite = true;
             newMat.depthTest = true;
             newMat.side = THREE.FrontSide;
-            
             return newMat;
           };
           
@@ -63,74 +68,50 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     return clone;
   }, [scene]);
 
-  // Use animations with the cloned scene directly (not a wrapper group)
-  const { actions, mixer } = useAnimations(animations, clonedScene);
-
-  // Create trimmed death animation subclip
-  useEffect(() => {
-    if (!animations || animations.length === 0 || !mixer) return;
-    
-    const sitAndWaitClip = animations.find(clip => clip.name === "Running");
-    if (sitAndWaitClip && !mixer._actions.find(action => action._clip.name === "DeathTrimmed")) {
-      // Create a subclip that ends early (adjust endFrame as needed)
-      // Original animation duration divided by frames to find the right cutoff point
-      // Typically you want to cut it at around 50-70% of the original duration
-      const originalDuration = sitAndWaitClip.duration;
-      const trimmedDuration = originalDuration * 0.2; // Adjust this value (0.3 to 0.7) to control when it stops
-      
-      THREE.AnimationUtils.subclip(
-        sitAndWaitClip,
-        'DeathTrimmed',
-        0,
-        trimmedDuration * 30, // Assuming 30 fps, adjust if different
-        30
-      );
-    }
-  }, [animations, mixer]);
-
-  // Death states
-  const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
-                 (isAI && gamePhase === 'aiDead');
-
-  const isHoldingGun = (isPlayer && currentTurn === 'player' && gamePhase === 'playing') || 
-                       (isAI && currentTurn === 'ai' && gamePhase === 'playing');
+  // Use animations with the cloned scene directly
+  const { actions } = useAnimations(animations, clonedScene);
 
   // Animation state
   const deathProgress = useRef(0);
   const breathOffset = useMemo(() => (isPlayer ? 0 : Math.PI), [isPlayer]);
   const currentAnimation = useRef(null);
 
+  // Determine if this character is currently holding the gun
+  const isMyTurn = (isPlayer && currentTurn === 'player') || (isAI && currentTurn === 'ai');
+  const isInTriggerSequence = triggerSequencePhase !== null && triggerSequenceShooter === (isPlayer ? 'player' : 'ai');
+  
+  // Show gun when it's this character's turn during gameplay
+  const gunVisible = isMyTurn && (
+    gamePhase === 'playing' || 
+    gamePhase === 'cardGame' || 
+    gamePhase === 'triggerSequence' ||
+    isInTriggerSequence
+  );
+
+  // Death states
+  const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
+                 (isAI && gamePhase === 'aiDead');
+
   // Play appropriate animations based on game state
   useEffect(() => {
-    console.log("🚀 ~ Character ~ actions:", actions);
     if (!actions || Object.keys(actions).length === 0) return;
 
-
-    const sitAndWait = "Running";
-    const deathTrimmed = "DeathTrimmed";
     const running = "Chair_Sit_Idle_M"; 
-    // Determine which animation to play
-    let animationName = running
+    let animationName = running;
     
-     console.log("🚀 ~ Character ~ isDead:", isDead);
-     if (isDead) {
-      // Use trimmed death animation if available, otherwise fallback to full animation
-      animationName = actions[deathTrimmed] ? deathTrimmed : sitAndWait;
-    } 
+    if (isDead) {
+      animationName = actions["DeathTrimmed"] ? "DeathTrimmed" : "Running";
+    }
   
-    // If we found an animation and it's different from current, play it
     if (animationName && actions[animationName]) {
-      // Stop ALL animations first
       Object.values(actions).forEach(action => {
         if (action.isRunning()) {
           action.stop();
         }
       });
 
-      // Play the new animation
       const action = actions[animationName];
       
-      // Configure and play animation
       if (isDead) {
         action.setLoop(THREE.LoopOnce, 1);
       } else {
@@ -138,22 +119,51 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       }
       
       action.reset().play();
-
       currentAnimation.current = animationName;
     }
 
-  }, [actions, isDead, isHoldingGun, gamePhase, currentTurn]);
+  }, [actions, isDead, gamePhase, currentTurn]);
+
+  // Get world position for muzzle flash and effects
+  const getMuzzleWorldPosition = useCallback(() => {
+    if (!gunGroupRef.current) return new THREE.Vector3();
+    const worldPos = new THREE.Vector3();
+    gunGroupRef.current.getWorldPosition(worldPos);
+    return worldPos;
+  }, []);
+
+  // Export muzzle position for effects
+  useEffect(() => {
+    if (isMyTurn && gunGroupRef.current) {
+      window.__muzzlePosition = getMuzzleWorldPosition;
+    }
+  }, [isMyTurn, getMuzzleWorldPosition]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    // Add gun shake during tense moments
+    if (gunGroupRef.current && gunVisible) {
+      // Subtle shake during trigger sequence
+      if (isInTriggerSequence && triggerSequencePhase !== 'result') {
+        const shakeAmount = 0.005;
+        gunGroupRef.current.position.x += (Math.random() - 0.5) * shakeAmount;
+        gunGroupRef.current.position.y += (Math.random() - 0.5) * shakeAmount;
+      }
+      
+      // Recoil on shot
+      if (triggerSequencePhase === 'result' && isDead) {
+        const recoilTime = state.clock.elapsedTime * 20;
+        const recoilDecay = Math.exp(-recoilTime * 0.1);
+        gunGroupRef.current.rotation.z += Math.sin(recoilTime) * 0.15 * recoilDecay;
+      }
+    }
+
     if (isDead) {
-      // Death animation - fall forward/backward and to the side
       deathProgress.current = Math.min(deathProgress.current + delta * 2, 1);
       const t = deathProgress.current;
       const easeOut = 1 - Math.pow(1 - t, 3);
 
-      // Fall direction based on which character
       const fallRotationX = isPlayer ? 0.3 : -0.3;
       const fallRotationZ = isPlayer ? 0.2 : -0.2;
       const fallY = -0.3;
@@ -162,10 +172,8 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
       groupRef.current.rotation.z = fallRotationZ * easeOut;
       groupRef.current.position.y = position[1] + fallY * easeOut;
     } else {
-      // Reset death progress when not dead
       deathProgress.current = 0;
       
-      // Subtle breathing animation
       const breathe = Math.sin(state.clock.elapsedTime * 1.5 + breathOffset) * 0.01;
       groupRef.current.position.y = position[1] + breathe;
       groupRef.current.rotation.x = 0;
@@ -175,12 +183,35 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   if (!clonedScene) return null;
 
+  // Gun position at the side of the head, pointing at temple
+  // Position gun at temple height - slightly to the side of the head
+  const gunPosition = isPlayer 
+    ? [0.18, 1.12, 0.1]    // Right side of player's head, at temple height
+    : [-0.18, 1.12, -0.1];  // Left side of AI's head
+  
+  // Rotation: gun barrel pointing at the temple
+  const gunRotation = isPlayer
+    ? [Math.PI, 0, Math.PI]  // Barrel pointing at left temple
+    : [-Math.PI , 0, -Math.PI  ];  // Barrel pointing at right temple
+
   return (
     <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
       {/* Character model - positioned to sit on chair seat level */}
       <group position={[0, 0.2, 0.1]} scale={0.8}>
         <primitive object={clonedScene} />
       </group>
+
+      {/* Gun positioned at the side of the head */}
+      {gunScene && gunVisible && !isDead && (
+        <group 
+          ref={gunGroupRef} 
+          position={gunPosition}
+          rotation={gunRotation}
+          scale={0.10}
+        >
+          <primitive object={gunScene} />
+        </group>
+      )}
 
       {/* Chair - using the new GLB model */}
       <Chair position={[0, 0, 0]} scale={0.6} />
@@ -191,3 +222,4 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 // Preload the models
 useGLTF.preload('/russian/character.glb');
 useGLTF.preload('/russian/animations.glb');
+useGLTF.preload('/revolver.glb');

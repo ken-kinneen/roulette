@@ -84,6 +84,35 @@
   border-color: rgba(138, 154, 122, 0.8);
 }
 
+.dev-btn.leaderboard {
+  border-color: rgba(255, 200, 0, 0.5);
+}
+.dev-btn.leaderboard:hover:not(:disabled) {
+  background: rgba(255, 200, 0, 0.2);
+  border-color: rgba(255, 200, 0, 0.8);
+}
+
+.dev-status {
+  margin-top: 6px;
+  padding: 4px 6px;
+  font-size: 0.55rem;
+  border-radius: 3px;
+  text-align: center;
+  background: rgba(100, 100, 100, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.dev-status.success {
+  background: rgba(80, 160, 80, 0.3);
+  color: #8f8;
+}
+
+.dev-status.error {
+  background: rgba(180, 50, 50, 0.3);
+  color: #f88;
+}
+
 .dev-phase {
   margin-top: 6px;
   padding-top: 6px;

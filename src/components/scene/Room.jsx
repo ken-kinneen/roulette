@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import * as THREE from 'three';
+import { Dresser } from './Dresser';
 
 // Seeded random for deterministic texture generation
 function seededRandom(seed) {
@@ -106,89 +107,118 @@ function ArchWay({ position, size = [3, 4, 0.5], rotation = [0, 0, 0] }) {
 export function Room() {
   const roomSize = { width: 8, height: 5, depth: 8 };
 
-  // Create aged, dirty concrete/stone floor texture
-  const floorTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-    let seed = 12345; // Fixed seed for deterministic results
-    const rand = () => { seed++; return seededRandom(seed); };
+  // Load and process the map texture - make white transparent, darken, add vignette
+  const [mapTexture, setMapTexture] = useState(null);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/image/map.png';
     
-    // Base - dark dirty stone
-    ctx.fillStyle = '#1a1410';
-    ctx.fillRect(0, 0, 1024, 1024);
-    
-    // Stone/tile pattern with irregular shapes
-    for (let i = 0; i < 200; i++) {
-      const x = rand() * 1024;
-      const y = rand() * 1024;
-      const size = 40 + rand() * 120;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
       
-      const brightness = 20 + rand() * 25;
-      ctx.fillStyle = `rgb(${brightness + 5}, ${brightness}, ${brightness - 3})`;
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
       
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      for (let j = 0; j < 6; j++) {
-        const angle = (j / 6) * Math.PI * 2 + rand() * 0.3;
-        const r = size * (0.7 + rand() * 0.3);
-        ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+      // Process pixels: remove white, darken, and add vignette
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Check if pixel is pure white (threshold: 252+) - make transparent
+          if (r > 252 && g > 252 && b > 252) {
+            data[i + 3] = 0;
+            continue;
+          }
+          // Soft fade for near-white (threshold: 248-252)
+          if (r > 248 && g > 248 && b > 248) {
+            const avg = (r + g + b) / 3;
+            data[i + 3] = Math.max(0, 255 - (avg - 248) * 50);
+            continue;
+          }
+          
+          // Calculate vignette factor (darker at edges)
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const vignette = 1 - Math.pow(dist / maxDist, 1.5) * 0.6;
+          
+          // Darken the image overall (multiply by 0.7) and apply vignette
+          const darkenFactor = 0.65 * vignette;
+          data[i] = Math.floor(r * darkenFactor);
+          data[i + 1] = Math.floor(g * darkenFactor);
+          data[i + 2] = Math.floor(b * darkenFactor);
+        }
       }
-      ctx.closePath();
-      ctx.fill();
-    }
-    
-    // Dirt and debris patches
-    for (let i = 0; i < 80; i++) {
-      const x = rand() * 1024;
-      const y = rand() * 1024;
-      const size = 30 + rand() * 100;
       
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-      gradient.addColorStop(0, 'rgba(35, 25, 15, 0.6)');
-      gradient.addColorStop(0.5, 'rgba(25, 18, 10, 0.4)');
-      gradient.addColorStop(1, 'rgba(20, 15, 8, 0)');
+      ctx.putImageData(imageData, 0, 0);
       
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      setMapTexture(texture);
+    };
+  }, []);
+
+  // Load and process bunker floor texture - darken, add vignette, reduce tiling visibility
+  const [floorTexture, setFloorTexture] = useState(null);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/image/Bunker_Floor.jpeg';
     
-    // Scattered debris/pebbles
-    for (let i = 0; i < 500; i++) {
-      const x = rand() * 1024;
-      const y = rand() * 1024;
-      const size = 1 + rand() * 4;
-      const brightness = 15 + rand() * 20;
-      ctx.fillStyle = `rgba(${brightness + 10}, ${brightness + 5}, ${brightness}, ${0.5 + rand() * 0.5})`;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    
-    // Cracks
-    for (let i = 0; i < 15; i++) {
-      ctx.strokeStyle = `rgba(5, 3, 2, ${0.4 + rand() * 0.4})`;
-      ctx.lineWidth = 1 + rand() * 2;
-      ctx.beginPath();
-      let x = rand() * 1024;
-      let y = rand() * 1024;
-      ctx.moveTo(x, y);
-      for (let j = 0; j < 8; j++) {
-        x += (rand() - 0.5) * 80;
-        y += (rand() - 0.5) * 80;
-        ctx.lineTo(x, y);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+      
+      // Process pixels: darken significantly and add subtle vignette for tiling blend
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          
+          // Calculate vignette factor (darker at edges to help blend tiles)
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const vignette = 1 - Math.pow(dist / maxDist, 2) * 0.25;
+          
+          // Darken significantly (multiply by 0.4) and apply vignette
+          const darkenFactor = 0.35 * vignette;
+          data[i] = Math.floor(data[i] * darkenFactor);
+          data[i + 1] = Math.floor(data[i + 1] * darkenFactor);
+          data[i + 2] = Math.floor(data[i + 2] * darkenFactor);
+        }
       }
-      ctx.stroke();
-    }
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(3, 3);
-    return texture;
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(1.5, 1.5);
+      texture.needsUpdate = true;
+      setFloorTexture(texture);
+    };
   }, []);
 
   // Create weathered concrete/stone wall texture - bunker style
@@ -197,6 +227,8 @@ export function Room() {
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
+    let seed = 54321; // Fixed seed for deterministic results
+    const rand = () => { seed++; return seededRandom(seed); };
     
     // Base - dark weathered concrete
     ctx.fillStyle = '#1f1a15';
@@ -204,18 +236,18 @@ export function Room() {
     
     // Concrete texture - mottled pattern
     for (let i = 0; i < 5000; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const brightness = 25 + Math.random() * 30;
-      ctx.fillStyle = `rgba(${brightness + 8}, ${brightness + 3}, ${brightness}, ${0.1 + Math.random() * 0.15})`;
-      ctx.fillRect(x, y, 2 + Math.random() * 4, 2 + Math.random() * 4);
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const brightness = 25 + rand() * 30;
+      ctx.fillStyle = `rgba(${brightness + 8}, ${brightness + 3}, ${brightness}, ${0.1 + rand() * 0.15})`;
+      ctx.fillRect(x, y, 2 + rand() * 4, 2 + rand() * 4);
     }
     
     // Water stains and seepage - vertical drips
     for (let i = 0; i < 25; i++) {
-      const x = Math.random() * 1024;
-      const startY = Math.random() * 200;
-      const length = 200 + Math.random() * 600;
+      const x = rand() * 1024;
+      const startY = rand() * 200;
+      const length = 200 + rand() * 600;
       
       const gradient = ctx.createLinearGradient(x, startY, x, startY + length);
       gradient.addColorStop(0, 'rgba(60, 45, 30, 0.5)');
@@ -224,15 +256,15 @@ export function Room() {
       gradient.addColorStop(1, 'rgba(35, 25, 15, 0)');
       
       ctx.fillStyle = gradient;
-      const width = 15 + Math.random() * 40;
+      const width = 15 + rand() * 40;
       ctx.fillRect(x - width/2, startY, width, length);
     }
     
     // Rust stains - orange/brown patches
     for (let i = 0; i < 20; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const size = 40 + Math.random() * 120;
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 40 + rand() * 120;
       
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
       gradient.addColorStop(0, 'rgba(80, 45, 20, 0.4)');
@@ -241,15 +273,15 @@ export function Room() {
       
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.ellipse(x, y, size * (0.8 + Math.random() * 0.4), size, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.ellipse(x, y, size * (0.8 + rand() * 0.4), size, rand() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
     
     // Mold/mildew - dark greenish patches
     for (let i = 0; i < 15; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const size = 60 + Math.random() * 150;
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 60 + rand() * 150;
       
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
       gradient.addColorStop(0, 'rgba(30, 35, 25, 0.35)');
@@ -264,15 +296,16 @@ export function Room() {
     
     // Cracks and damage
     for (let i = 0; i < 20; i++) {
-      ctx.strokeStyle = `rgba(10, 8, 5, ${0.5 + Math.random() * 0.4})`;
-      ctx.lineWidth = 1 + Math.random() * 3;
+      ctx.strokeStyle = `rgba(10, 8, 5, ${0.5 + rand() * 0.4})`;
+      ctx.lineWidth = 1 + rand() * 3;
       ctx.beginPath();
-      let x = Math.random() * 1024;
-      let y = Math.random() * 1024;
+      let x = rand() * 1024;
+      let y = rand() * 1024;
       ctx.moveTo(x, y);
-      for (let j = 0; j < 5 + Math.random() * 5; j++) {
-        x += (Math.random() - 0.5) * 60;
-        y += Math.random() * 40;
+      const iterations = 5 + Math.floor(rand() * 5);
+      for (let j = 0; j < iterations; j++) {
+        x += (rand() - 0.5) * 60;
+        y += rand() * 40;
         ctx.lineTo(x, y);
       }
       ctx.stroke();
@@ -280,10 +313,10 @@ export function Room() {
     
     // Chipped/damaged areas - lighter patches
     for (let i = 0; i < 30; i++) {
-      const x = Math.random() * 1024;
-      const y = Math.random() * 1024;
-      const size = 10 + Math.random() * 40;
-      ctx.fillStyle = `rgba(50, 42, 35, ${0.3 + Math.random() * 0.3})`;
+      const x = rand() * 1024;
+      const y = rand() * 1024;
+      const size = 10 + rand() * 40;
+      ctx.fillStyle = `rgba(50, 42, 35, ${0.3 + rand() * 0.3})`;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
@@ -325,14 +358,6 @@ export function Room() {
       metalness: 0.0,
       side: THREE.BackSide,
     }), [wallTexture]
-  );
-
-  const concreteMaterial = useMemo(() => 
-    new THREE.MeshStandardMaterial({
-      color: '#1a1512',
-      roughness: 0.95,
-      metalness: 0.0,
-    }), []
   );
 
   return (
@@ -384,18 +409,28 @@ export function Room() {
         </mesh>
       </group>
 
-      {/* Map on back wall - scaled for smaller room */}
-      <mesh position={[0, 2.5, -3.9]} receiveShadow>
-        <planeGeometry args={[1.5, 1]} />
-        <meshStandardMaterial color="#3a3528" roughness={0.95} />
-      </mesh>
+      {/* Map directly on back wall - large and prominent */}
+      {mapTexture && (
+        <mesh position={[0, 2.8, -3.95]} receiveShadow>
+          <planeGeometry args={[3, 2]} />
+          <meshStandardMaterial 
+            map={mapTexture} 
+            roughness={0.9}
+            transparent={true}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       {/* Map pins */}
-      {[[0.2, 0.2], [-0.3, 0.1], [0, -0.2], [-0.2, -0.3]].map(([ox, oy], i) => (
-        <mesh key={i} position={[ox, 2.5 + oy, -3.85]}>
-          <sphereGeometry args={[0.02, 8, 8]} />
+      {[[1.0, 0.5], [-1.2, 0.4], [0.4, -0.5], [-0.8, -0.7], [0.8, -0.2]].map(([ox, oy], i) => (
+        <mesh key={i} position={[ox, 2.8 + oy, -3.9]}>
+          <sphereGeometry args={[0.03, 8, 8]} />
           <meshStandardMaterial color={i % 2 === 0 ? "#aa3322" : "#886633"} />
         </mesh>
       ))}
+
+      {/* Dresser under the map */}
+      <Dresser position={[0, 1, -3.5]} rotation={[0, 0, 0]} scale={1} />
 
       {/* Metal bucket - corner */}
       <mesh position={[2.8, 0.2, -2.5]} castShadow receiveShadow>

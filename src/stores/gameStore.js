@@ -12,7 +12,12 @@ import {
 import { runTriggerSequence, clearSequenceTimeouts, stopAllTriggerSounds } from "../utils/triggerSequence";
 
 const STARTING_LIVES = 3;
-const API_BASE = "/api";
+
+// Use production API when running on localhost (for testing)
+// Change this to your Vercel deployment URL
+const PRODUCTION_URL = "https://roulette-mealify.vercel.app/";
+const isLocalhost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+const API_BASE = isLocalhost ? `${PRODUCTION_URL}/api` : "/api";
 
 const getRandomBulletPosition = () => Math.floor(Math.random() * 6) + 1;
 
