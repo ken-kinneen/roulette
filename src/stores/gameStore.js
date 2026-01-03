@@ -12,7 +12,7 @@ import {
 import { runTriggerSequence, clearSequenceTimeouts, stopAllTriggerSounds } from "../utils/triggerSequence";
 
 const STARTING_LIVES = 3;
-const LEADERBOARD_KEY = 'roulette_leaderboard';
+const LEADERBOARD_KEY = "roulette_leaderboard";
 const MAX_LEADERBOARD_ENTRIES = 10;
 
 const getRandomBulletPosition = () => Math.floor(Math.random() * 6) + 1;
@@ -87,14 +87,14 @@ const compareCards = (currentCard, nextCard) => {
 
 export const useGameStore = create((set, get) => ({
     // Game state
-    level: 1,
-    lives: 1,
+    roundsSurvived: 0,
+    lives: STARTING_LIVES,
     bulletsShot: 0,
     bulletPosition: getRandomBulletPosition(),
     currentTurn: "player",
-    gamePhase: "start", // 'start', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'levelComplete', 'gameOver'
+    gamePhase: "start", // 'start', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'roundComplete', 'gameOver'
     shotHistory: [],
-    highestLevel: 1,
+    leaderboard: loadLeaderboard(),
     isAnimating: false,
 
     // Trigger sequence state
@@ -244,7 +244,7 @@ export const useGameStore = create((set, get) => ({
 
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
-        const { bulletsShot, currentTurn, lives, level, shotHistory } = get();
+        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory } = get();
         const shotNumber = bulletsShot + 1;
 
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
@@ -253,13 +253,14 @@ export const useGameStore = create((set, get) => ({
             if (currentTurn === "player") {
                 const newLives = lives - 1;
                 if (newLives <= 0) {
-                    // Game over
+                    // Game over - add to leaderboard
                     setTimeout(() => playDeath(), 300);
+                    const newLeaderboard = addToLeaderboard(roundsSurvived);
                     set({
                         bulletsShot: shotNumber,
                         shotHistory: newHistory,
                         gamePhase: "gameOver",
-                        highestLevel: Math.max(get().highestLevel, level),
+                        leaderboard: newLeaderboard,
                         isAnimating: false,
                     });
                 } else {
@@ -274,11 +275,12 @@ export const useGameStore = create((set, get) => ({
                     });
                 }
             } else {
-                // AI got shot - player wins the round
+                // AI got shot - player survives another round!
                 setTimeout(() => playLevelUp(), 500);
                 set({
                     bulletsShot: shotNumber,
                     shotHistory: newHistory,
+                    roundsSurvived: roundsSurvived + 1,
                     gamePhase: "aiDead",
                     isAnimating: false,
                 });
@@ -351,8 +353,8 @@ export const useGameStore = create((set, get) => ({
         const currentCard = deck.pop();
 
         set({
-            level: 1,
-            lives: 1,
+            roundsSurvived: 0,
+            lives: STARTING_LIVES,
             bulletsShot: 0,
             bulletPosition: getRandomBulletPosition(),
             currentTurn: "player",
@@ -378,7 +380,7 @@ export const useGameStore = create((set, get) => ({
     },
 
     pullTrigger: () => {
-        const { bulletsShot, bulletPosition, currentTurn, lives, level, shotHistory, isAnimating } = get();
+        const { bulletsShot, bulletPosition, currentTurn, lives, roundsSurvived, shotHistory, isAnimating } = get();
 
         if (isAnimating) return; // Prevent multiple triggers during animation
 
@@ -401,13 +403,14 @@ export const useGameStore = create((set, get) => ({
                 if (currentTurn === "player") {
                     const newLives = lives - 1;
                     if (newLives <= 0) {
-                        // Game over
+                        // Game over - add to leaderboard
                         setTimeout(() => playDeath(), 300);
+                        const newLeaderboard = addToLeaderboard(roundsSurvived);
                         set({
                             bulletsShot: shotNumber,
                             shotHistory: newHistory,
                             gamePhase: "gameOver",
-                            highestLevel: Math.max(get().highestLevel, level),
+                            leaderboard: newLeaderboard,
                             isAnimating: false,
                         });
                     } else {
@@ -422,11 +425,12 @@ export const useGameStore = create((set, get) => ({
                         });
                     }
                 } else {
-                    // AI got shot - player wins the round
+                    // AI got shot - player survives another round!
                     setTimeout(() => playLevelUp(), 500);
                     set({
                         bulletsShot: shotNumber,
                         shotHistory: newHistory,
+                        roundsSurvived: roundsSurvived + 1,
                         gamePhase: "aiDead",
                         isAnimating: false,
                     });
@@ -464,10 +468,7 @@ export const useGameStore = create((set, get) => ({
 
     setPhase: (phase) => set({ gamePhase: phase }),
 
-    nextLevel: () => {
-        const { level } = get();
-        const newLevel = level + 1;
-
+    nextRound: () => {
         // Clean up any running trigger sequence
         const cleanup = get().triggerSequenceCleanup;
         if (cleanup) cleanup();
@@ -477,15 +478,13 @@ export const useGameStore = create((set, get) => ({
         const deck = createDeck();
         const currentCard = deck.pop();
 
+        // Keep lives as they are, just reset the revolver for a new round
         set({
-            level: newLevel,
-            lives: newLevel, // Lives = level number
             bulletsShot: 0,
             bulletPosition: getRandomBulletPosition(),
             currentTurn: "player",
             gamePhase: "cardGame",
             shotHistory: [],
-            highestLevel: Math.max(get().highestLevel, newLevel),
             isAnimating: false,
             deck,
             currentCard,
@@ -546,8 +545,8 @@ export const useGameStore = create((set, get) => ({
         stopAllTriggerSounds();
 
         set({
-            level: 1,
-            lives: 1,
+            roundsSurvived: 0,
+            lives: STARTING_LIVES,
             bulletsShot: 0,
             bulletPosition: getRandomBulletPosition(),
             currentTurn: "player",

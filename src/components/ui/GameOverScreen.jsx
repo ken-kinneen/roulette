@@ -3,11 +3,15 @@ import './GameOverScreen.css';
 
 export function GameOverScreen() {
   const gamePhase = useGameStore((state) => state.gamePhase);
-  const level = useGameStore((state) => state.level);
-  const highestLevel = useGameStore((state) => state.highestLevel);
+  const roundsSurvived = useGameStore((state) => state.roundsSurvived);
+  const leaderboard = useGameStore((state) => state.leaderboard);
   const resetGame = useGameStore((state) => state.resetGame);
 
   if (gamePhase !== 'gameOver') return null;
+
+  const bestScore = leaderboard.length > 0 ? leaderboard[0].rounds : 0;
+  const isNewBest = roundsSurvived > 0 && roundsSurvived >= bestScore;
+  const rank = leaderboard.findIndex(entry => entry.rounds === roundsSurvived) + 1;
 
   return (
     <div className="game-over-screen">
@@ -27,16 +31,42 @@ export function GameOverScreen() {
 
         <h1 className="game-over-title">GAME OVER</h1>
         
+        {isNewBest && (
+          <div className="new-best-banner">
+            <span className="trophy">🏆</span>
+            <span>NEW HIGH SCORE!</span>
+          </div>
+        )}
+        
         <div className="final-stats">
-          <div className="final-stat">
-            <span className="final-stat-label">REACHED LEVEL</span>
-            <span className="final-stat-value">{level}</span>
+          <div className="final-stat main">
+            <span className="final-stat-label">ROUNDS SURVIVED</span>
+            <span className={`final-stat-value ${isNewBest ? 'best' : ''}`}>{roundsSurvived}</span>
           </div>
-          <div className="final-stat">
-            <span className="final-stat-label">HIGHEST LEVEL</span>
-            <span className="final-stat-value best">{highestLevel}</span>
-          </div>
+          {rank > 0 && (
+            <div className="final-stat">
+              <span className="final-stat-label">LEADERBOARD RANK</span>
+              <span className="final-stat-value rank">#{rank}</span>
+            </div>
+          )}
         </div>
+
+        {leaderboard.length > 0 && (
+          <div className="game-over-leaderboard">
+            <div className="leaderboard-title-small">TOP SCORES</div>
+            <div className="top-scores">
+              {leaderboard.slice(0, 5).map((entry, index) => (
+                <div 
+                  key={entry.id} 
+                  className={`top-score-entry ${entry.rounds === roundsSurvived && index === rank - 1 ? 'current' : ''}`}
+                >
+                  <span className="top-rank">#{index + 1}</span>
+                  <span className="top-rounds">{entry.rounds}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="epitaph">
           "Fortune favors the bold, but the revolver favors no one."

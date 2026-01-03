@@ -107,6 +107,119 @@
   text-shadow: 0 0 15px rgba(196, 161, 69, 0.4);
 }
 
+.final-stat-value.rank {
+  color: #8a9a7a;
+}
+
+.final-stat.main {
+  background: rgba(40, 35, 30, 0.6);
+  border: 1px solid rgba(196, 161, 69, 0.3);
+}
+
+.new-best-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(196, 161, 69, 0.2) 0%, rgba(196, 161, 69, 0.1) 100%);
+  border: 2px solid #c4a145;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  animation: newBestPulse 2s ease-in-out infinite;
+}
+
+@keyframes newBestPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(196, 161, 69, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(196, 161, 69, 0.5);
+  }
+}
+
+.new-best-banner .trophy {
+  font-size: 1.5rem;
+  animation: trophyBounce 0.6s ease-in-out infinite;
+}
+
+@keyframes trophyBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.new-best-banner span:last-child {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2rem;
+  color: #c4a145;
+}
+
+.game-over-leaderboard {
+  margin: 1.5rem 0;
+  padding: 16px 24px;
+  background: rgba(20, 18, 15, 0.6);
+  border: 1px solid rgba(138, 122, 106, 0.2);
+  border-radius: 8px;
+}
+
+.leaderboard-title-small {
+  font-family: 'Courier New', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.15rem;
+  color: #6a5a4a;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.top-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.top-score-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.top-score-entry.current {
+  background: rgba(196, 161, 69, 0.15);
+  border: 1px solid rgba(196, 161, 69, 0.4);
+}
+
+.top-rank {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #6a5a4a;
+}
+
+.top-score-entry.current .top-rank {
+  color: #c4a145;
+}
+
+.top-rounds {
+  font-family: 'Courier New', monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #d4c4a8;
+}
+
+.top-score-entry.current .top-rounds {
+  color: #c4a145;
+  text-shadow: 0 0 10px rgba(196, 161, 69, 0.4);
+}
+
 .epitaph {
   font-family: 'Georgia', serif;
   font-size: 0.9rem;

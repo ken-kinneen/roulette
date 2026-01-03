@@ -114,7 +114,7 @@ export function StartScreen() {
         <p className="instructions">
           One bullet. Six chambers. Take turns pulling the trigger.
           <br />
-          Survive to advance. Each level grants an extra life.
+          You have 3 lives. Survive as many rounds as possible.
         </p>
 
         <button className="start-button" onClick={handleStart}>

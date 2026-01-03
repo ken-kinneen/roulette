@@ -28,13 +28,13 @@ function HeartIcon({ active }) {
 }
 
 export function GamePanel() {
-  const level = useGameStore((state) => state.level);
+  const roundsSurvived = useGameStore((state) => state.roundsSurvived);
   const lives = useGameStore((state) => state.lives);
   const bulletsShot = useGameStore((state) => state.bulletsShot);
   const currentTurn = useGameStore((state) => state.currentTurn);
   const gamePhase = useGameStore((state) => state.gamePhase);
   const pullTrigger = useGameStore((state) => state.pullTrigger);
-  const nextLevel = useGameStore((state) => state.nextLevel);
+  const nextRound = useGameStore((state) => state.nextRound);
   const continueAfterDeath = useGameStore((state) => state.continueAfterDeath);
   const getCurrentOdds = useGameStore((state) => state.getCurrentOdds);
   const isAnimating = useGameStore((state) => state.isAnimating);
@@ -111,8 +111,8 @@ export function GamePanel() {
   };
 
   const renderHearts = () => {
-    const maxHearts = Math.max(level, lives);
-    return Array.from({ length: maxHearts }, (_, i) => (
+    // Always show 3 hearts (fixed starting lives)
+    return Array.from({ length: 3 }, (_, i) => (
       <HeartIcon key={i} active={i < lives} />
     ));
   };
@@ -328,8 +328,8 @@ export function GamePanel() {
               <div className="outcome victory">
                 <span className="outcome-emoji">🎯</span>
                 <span className="outcome-title">VLAD ELIMINATED!</span>
-                <span className="outcome-sub">Level {level} complete</span>
-                <button className="outcome-btn win" onClick={nextLevel}>NEXT LEVEL</button>
+                <span className="outcome-sub">Round {roundsSurvived} survived!</span>
+                <button className="outcome-btn win" onClick={nextRound}>NEXT ROUND</button>
               </div>
             )}
           </div>
@@ -337,9 +337,9 @@ export function GamePanel() {
 
         {/* Right Section - Stats */}
         <div className="panel-section stats-section">
-          <div className="stat-block level-block">
-            <span className="stat-big">{level}</span>
-            <span className="stat-label">LEVEL</span>
+          <div className="stat-block rounds-block">
+            <span className="stat-big">{roundsSurvived}</span>
+            <span className="stat-label">ROUNDS</span>
           </div>
           
           <div className="stat-block lives-block">
