@@ -50,3 +50,4 @@ export function setMusicVolume(volume) {
 export function isMusicPlaying() {
     return isPlaying && audio && !audio.paused;
 }
+

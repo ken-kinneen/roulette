@@ -46,22 +46,22 @@
 }
 
 .revolver-icon {
-  width: 120px;
-  height: 80px;
+  width: 300px;
+  height: 200px;
   margin: 2rem auto;
   color: #8a7a6a;
-  opacity: 0.6;
+  opacity: 1;
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% {
-    opacity: 0.6;
+    opacity: 0.9;
     transform: scale(1);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.05);
+    opacity: 1;
+    transform: scale(1.08);
   }
 }
 
@@ -122,5 +122,6 @@
   letter-spacing: 0.2rem;
   color: #5a5045;
 }
+
 
 

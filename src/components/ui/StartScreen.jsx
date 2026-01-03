@@ -34,14 +34,34 @@ function RevolverModel() {
   if (!clonedScene) return null;
 
   return (
-    <group ref={groupRef} rotation={[0.2, 0, 0]} scale={[4, 4, 4]}>
+    <group ref={groupRef} rotation={[0.2, 0, 0]} scale={[6, 6, 6]}>
       <primitive object={clonedScene} />
       {/* Red glow behind the revolver */}
       <pointLight 
         position={[0, 0, -2]} 
         color="#c45c45" 
-        intensity={3} 
+        intensity={8} 
+        distance={15}
+      />
+      {/* Additional front lighting to brighten the revolver */}
+      <pointLight 
+        position={[0, 0, 3]} 
+        color="#ffffff" 
+        intensity={5} 
         distance={10}
+      />
+      {/* Side lights for better definition */}
+      <pointLight 
+        position={[3, 1, 0]} 
+        color="#d4c4a8" 
+        intensity={4} 
+        distance={8}
+      />
+      <pointLight 
+        position={[-3, 1, 0]} 
+        color="#d4c4a8" 
+        intensity={4} 
+        distance={8}
       />
     </group>
   );
@@ -70,16 +90,23 @@ export function StartScreen() {
             camera={{ position: [0, 0, 8], fov: 50, near: 0.1, far: 1000 }}
             gl={{ alpha: true }}
           >
-            <ambientLight intensity={1.2} />
+            <ambientLight intensity={2.5} />
             <spotLight 
               position={[5, 5, 5]} 
               angle={0.5} 
               penumbra={1} 
-              intensity={3}
+              intensity={8}
               castShadow
             />
-            <pointLight position={[-5, 5, 5]} intensity={1.5} />
-            <pointLight position={[0, -3, 3]} intensity={1} />
+            <spotLight 
+              position={[-5, 5, 5]} 
+              angle={0.5} 
+              penumbra={1} 
+              intensity={6}
+              castShadow
+            />
+            <pointLight position={[0, 5, 5]} intensity={5} color="#ffffff" />
+            <pointLight position={[0, -3, 3]} intensity={3} color="#d4c4a8" />
             <RevolverModel />
           </Canvas>
         </div>

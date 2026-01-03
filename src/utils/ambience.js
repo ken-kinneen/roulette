@@ -271,3 +271,4 @@ export function setAmbienceVolume(volume) {
 export function isAmbiencePlaying() {
     return isPlaying;
 }
+

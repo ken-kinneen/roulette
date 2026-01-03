@@ -168,4 +168,69 @@ export function playDeath() {
   oscillator.stop(ctx.currentTime + 0.8);
 }
 
+// Card flip sound
+export function playCardFlip() {
+  const ctx = getAudioContext();
+  
+  // Quick paper-like flip sound
+  const bufferSize = ctx.sampleRate * 0.1;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  for (let i = 0; i < bufferSize; i++) {
+    // Short noise burst
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
+  }
+  
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.setValueAtTime(2000, ctx.currentTime);
+  
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.15, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+  
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  
+  noise.start(ctx.currentTime);
+}
+
+// Card slide/deal sound
+export function playCardSlide() {
+  const ctx = getAudioContext();
+  
+  const bufferSize = ctx.sampleRate * 0.15;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  for (let i = 0; i < bufferSize; i++) {
+    // Sliding friction sound
+    const t = i / ctx.sampleRate;
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 20) * 0.3;
+  }
+  
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(1500, ctx.currentTime);
+  filter.Q.setValueAtTime(1, ctx.currentTime);
+  
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.2, ctx.currentTime);
+  
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  
+  noise.start(ctx.currentTime);
+}
+
+
 
