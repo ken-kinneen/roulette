@@ -11,6 +11,7 @@ export function GameOverScreen() {
   const resetGame = useGameStore((state) => state.resetGame);
   const gameMode = useGameStore((state) => state.gameMode);
   const currentTurn = useGameStore((state) => state.currentTurn);
+  const isHost = useGameStore((state) => state.isHost);
 
   // Don't show if name input modal is open
   if (gamePhase !== 'gameOver' || showNameInput) return null;
@@ -20,8 +21,10 @@ export function GameOverScreen() {
   
   // In PvP, determine winner/loser
   // currentTurn is the person who got shot (since turn doesn't switch after death)
-  const playerWon = isPvP && currentTurn === 'ai';
-  const playerLost = isPvP && currentTurn === 'player';
+  // Host plays as 'player', guest plays as 'ai'
+  const myRole = isPvP ? (isHost ? 'player' : 'ai') : 'player';
+  const playerWon = isPvP && currentTurn !== myRole; // I won if the OTHER person got shot
+  const playerLost = isPvP && currentTurn === myRole; // I lost if I got shot
 
   return (
     <div className="game-over-screen">

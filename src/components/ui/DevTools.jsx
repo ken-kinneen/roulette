@@ -65,7 +65,7 @@ export function DevTools() {
   };
 
   if (!isLocalhost) return null;
-  if (gamePhase === 'start') return null;
+  if (gamePhase === 'start' || gamePhase === 'lobby') return null;
 
   return (
     <div className="dev-tools">

@@ -49,12 +49,18 @@ export function GamePanel() {
   const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
   const triggerSequenceWillFire = useGameStore((state) => state.triggerSequenceWillFire);
   const gameMode = useGameStore((state) => state.gameMode);
+  const isHost = useGameStore((state) => state.isHost);
   
   const [riskPulse, setRiskPulse] = useState(false);
   const prevBulletsShot = useRef(bulletsShot);
   const vladCardTimeoutRef = useRef(null);
 
   const isPvP = gameMode === 'pvp';
+  
+  // In PvP: host plays as 'player', guest plays as 'ai'
+  // Determine if it's MY turn to guess
+  const myRole = isPvP ? (isHost ? 'player' : 'ai') : 'player';
+  const isMyTurn = currentTurn === myRole;
 
   // Vlad makes card guess (only in solo mode)
   useEffect(() => {
@@ -77,18 +83,21 @@ export function GamePanel() {
     }
   }, [bulletsShot]);
 
-  if (gamePhase === 'start' || gamePhase === 'gameOver') return null;
+  if (gamePhase === 'start' || gamePhase === 'gameOver' || gamePhase === 'lobby') return null;
 
   const odds = getCurrentOdds();
   const isCardGame = gamePhase === 'cardGame';
   const isRevolverPhase = gamePhase === 'playing';
   const isTriggerSequence = gamePhase === 'triggerSequence';
-  const isPlayerTurn = currentTurn === 'player';
   const isOutcome = gamePhase === 'playerDead' || gamePhase === 'aiDead';
-  const isPlayerGuessing = isCardGame && currentTurn === 'player' && cardGamePhase === 'guessing';
-  const isVladGuessing = isCardGame && currentTurn === 'ai' && cardGamePhase === 'guessing';
-  const isVladPredicting = isCardGame && cardGamePhase === 'vladPredicting';
   const isRevealing = cardGamePhase === 'revealing' || cardGamePhase === 'result';
+  
+  // In PvP, determine if I should be guessing vs waiting for opponent
+  const isMyGuessing = isCardGame && isMyTurn && cardGamePhase === 'guessing';
+  const isOpponentGuessing = isCardGame && !isMyTurn && cardGamePhase === 'guessing';
+  
+  // Solo-only states
+  const isVladPredicting = !isPvP && isCardGame && cardGamePhase === 'vladPredicting';
 
   // Labels for PvP vs Solo
   const opponentLabel = isPvP ? 'OPPONENT' : 'VLAD';
@@ -178,10 +187,10 @@ export function GamePanel() {
         <div className="panel-section cards-section">
           {/* Turn Banner */}
           <div className="turn-banner">
-            <span className={`turn-who ${isTriggerSequence ? (triggerSequenceShooter === 'player' ? 'player' : 'vlad') : (isPlayerTurn ? 'player' : 'vlad')}`}>
+            <span className={`turn-who ${isTriggerSequence ? (triggerSequenceShooter === myRole ? 'player' : 'vlad') : (isMyTurn ? 'player' : 'vlad')}`}>
               {isTriggerSequence 
-                ? (triggerSequenceShooter === 'player' ? 'YOUR FATE' : `${opponentLabel}'S FATE`)
-                : (isPlayerTurn ? 'YOUR TURN' : `${opponentLabel}'S TURN`)}
+                ? (triggerSequenceShooter === myRole ? 'YOUR FATE' : `${opponentLabel}'S FATE`)
+                : (isMyTurn ? 'YOUR TURN' : `${opponentLabel}'S TURN`)}
             </span>
             <span className="turn-phase">
               {isCardGame ? '♠ HI-LO' : isTriggerSequence ? '• ROULETTE' : isRevolverPhase ? '• SHOOT' : ''}
@@ -217,8 +226,8 @@ export function GamePanel() {
               <div className="status-msg">DEALING<span className="dots">...</span></div>
             )}
 
-            {/* Card game - player guess */}
-            {isPlayerGuessing && !isAnimating && (
+            {/* Card game - MY turn to guess */}
+            {isMyGuessing && !isAnimating && (
               <div className="guess-row">
                 <button className="guess-btn hi" onClick={() => makeGuess('higher')}>
                   <span className="btn-icon">▲</span>
@@ -231,8 +240,8 @@ export function GamePanel() {
               </div>
             )}
 
-            {/* Card game - Vlad/Opponent thinking */}
-            {isVladGuessing && (
+            {/* Card game - Opponent's turn (waiting) */}
+            {isOpponentGuessing && (
               <div className="status-msg vlad">
                 {isPvP ? 'WAITING FOR OPPONENT' : 'VLAD IS THINKING'}
                 <span className="dots">...</span>
@@ -254,12 +263,12 @@ export function GamePanel() {
             {/* Card game - result */}
             {cardGamePhase === 'result' && lastGuessResult && (
               <div className={`result-msg ${lastGuessResult}`}>
-                <span className="result-who">{currentTurn === 'player' ? 'YOU' : opponentLabel} GUESSED {lastGuess?.toUpperCase()}</span>
+                <span className="result-who">{currentTurn === myRole ? 'YOU' : opponentLabel} GUESSED {lastGuess?.toUpperCase()}</span>
                 <span className="result-outcome">{lastGuessResult === 'correct' ? '✓ CORRECT!' : '✗ WRONG!'}</span>
                 <span className="result-consequence">
                   {lastGuessResult === 'correct' 
-                    ? `${currentTurn === 'player' ? opponentLabel : 'YOU'} MUST SHOOT!`
-                    : `${currentTurn === 'player' ? 'YOU' : opponentLabel} MUST SHOOT!`}
+                    ? `${currentTurn === myRole ? opponentLabel : 'YOU'} MUST SHOOT!`
+                    : `${currentTurn === myRole ? 'YOU' : opponentLabel} MUST SHOOT!`}
                 </span>
               </div>
             )}
@@ -271,12 +280,12 @@ export function GamePanel() {
                   <div className="sequence-phase drop-phase">
                     <span className="sequence-icon">⚰️</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' 
-                        ? (cardGameWinner === 'ai' ? 'Wrong guess.' : `${opponentLabelLower} was right.`)
-                        : (cardGameWinner === 'player' ? 'You were right.' : `${opponentLabelLower} guessed wrong.`)}
+                      {triggerSequenceShooter === myRole 
+                        ? (cardGameWinner !== myRole ? 'Wrong guess.' : `${opponentLabelLower} was right.`)
+                        : (cardGameWinner === myRole ? 'You were right.' : `${opponentLabelLower} guessed wrong.`)}
                     </span>
                     <span className="sequence-subtext">
-                      {triggerSequenceShooter === 'player' ? 'You must fire.' : `${opponentLabelLower} must fire.`}
+                      {triggerSequenceShooter === myRole ? 'You must fire.' : `${opponentLabelLower} must fire.`}
                     </span>
                   </div>
                 )}
@@ -284,7 +293,7 @@ export function GamePanel() {
                   <div className="sequence-phase heartbeat-phase">
                     <span className="sequence-icon heartbeat-pulse">♠</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Silence...' : `${opponentLabelLower} raises the gun...`}
+                      {triggerSequenceShooter === myRole ? 'Silence...' : `${opponentLabelLower} raises the gun...`}
                     </span>
                   </div>
                 )}
@@ -292,7 +301,7 @@ export function GamePanel() {
                   <div className="sequence-phase spin-phase">
                     <span className="sequence-icon spin-icon">⟳</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Chamber aligned...' : 'The cylinder clicks...'}
+                      {triggerSequenceShooter === myRole ? 'Chamber aligned...' : 'The cylinder clicks...'}
                     </span>
                   </div>
                 )}
@@ -300,7 +309,7 @@ export function GamePanel() {
                   <div className="sequence-phase pull-phase">
                     <span className="sequence-icon">•</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Pulling...' : `${opponentLabelLower} pulls the trigger...`}
+                      {triggerSequenceShooter === myRole ? 'Pulling...' : `${opponentLabelLower} pulls the trigger...`}
                     </span>
                   </div>
                 )}
@@ -315,7 +324,7 @@ export function GamePanel() {
                       <>
                         <span className="sequence-icon result-icon">—</span>
                         <span className="sequence-text">
-                          {triggerSequenceShooter === 'player' ? 'Click.' : 'Empty.'}
+                          {triggerSequenceShooter === myRole ? 'Click.' : 'Empty.'}
                         </span>
                       </>
                     )}
@@ -325,7 +334,7 @@ export function GamePanel() {
                   <div className="sequence-phase sigh-phase">
                     <span className="sequence-icon sigh-icon">😮‍💨</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Still alive...' : `${opponentLabelLower} survives...`}
+                      {triggerSequenceShooter === myRole ? 'Still alive...' : `${opponentLabelLower} survives...`}
                     </span>
                   </div>
                 )}

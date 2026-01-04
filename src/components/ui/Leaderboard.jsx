@@ -7,8 +7,8 @@ export function Leaderboard() {
   const gamePhase = useGameStore((state) => state.gamePhase);
   const roundsSurvived = useGameStore((state) => state.roundsSurvived);
 
-  // Don't show during start or game over screens
-  if (gamePhase === 'start' || gamePhase === 'gameOver') return null;
+  // Don't show during start, lobby, or game over screens
+  if (gamePhase === 'start' || gamePhase === 'gameOver' || gamePhase === 'lobby') return null;
 
   const bestScore = globalLeaderboard.length > 0 ? globalLeaderboard[0].rounds : 0;
 
