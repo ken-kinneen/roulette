@@ -856,15 +856,6 @@ export const useGameStore = create((set, get) => ({
             await peerManager.joinRoom(roomCode);
             set({ roomCode, isHost: false, opponentConnected: true, connectionError: null });
 
-            // Send our name to the host
-            const { playerName } = get();
-            setTimeout(() => {
-                peerManager.sendGameState({
-                    type: "playerInfo",
-                    name: playerName || "Guest",
-                });
-            }, 100);
-
             // Setup disconnect handler
             peerManager.onDisconnect(() => {
                 set({ opponentConnected: false, connectionError: "Host disconnected" });
@@ -875,7 +866,7 @@ export const useGameStore = create((set, get) => ({
                 set({ connectionError: err.message || "Connection error" });
             });
 
-            // Setup state sync receiver (host sends full game state)
+            // Setup state sync receiver (host sends full game state) - BEFORE sending our name
             peerManager.onGameState((state) => {
                 // Handle player info from host
                 if (state.type === "playerInfo") {
@@ -909,6 +900,15 @@ export const useGameStore = create((set, get) => ({
                     });
                 }
             });
+
+            // NOW send our name to the host (after handlers are set up)
+            const { playerName } = get();
+            setTimeout(() => {
+                peerManager.sendGameState({
+                    type: "playerInfo",
+                    name: playerName || "Guest",
+                });
+            }, 100);
         } catch (error) {
             set({ connectionError: error.message || "Failed to join room" });
             throw error;

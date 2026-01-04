@@ -14,9 +14,9 @@ export function WhiskeyBottle() {
 
   return (
     <group 
-      position={[-0.8, 1.49, 0]}
+      position={[-0.8, 1.38, 0]}
       rotation={[0, 0, 0]}
-      scale={0.23}
+      scale={0.20}
     >
       <primitive object={clonedScene} />
     </group>

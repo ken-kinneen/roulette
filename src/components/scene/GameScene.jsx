@@ -15,6 +15,8 @@ import { Ammo } from './Ammo';
 import { Cards } from './Cards';
 import { Sandbags } from './Sandbags';
 import { Rifle } from './Rifle';
+import { Dartboard } from './Dartboard';
+import { WeaponCase } from './WeaponCase';
 import { MuzzleFlash } from './MuzzleFlash';
 import { BloodSplat } from './BloodSplat';
 import { ScreenFlash } from './ScreenFlash';
@@ -255,6 +257,12 @@ export function GameScene() {
       {/* Rifles leaning against sandbags */}
       <Rifle position={[-1.15, 0.7, 0.1]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
       <Rifle position={[-1.15, 0.7, -0.10]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
+      
+      {/* Dartboard on wall */}
+      <Dartboard position={[5.1, 2.3, 0]} rotation={[-Math.PI,   0, Math.PI/2]} scale={0.6} />
+      
+      {/* Weapon case on floor */}
+      <WeaponCase position={[-3.5, 0.15, -3.5]} rotation={[0, Math.PI / 4, 0]} scale={1} />
       
       {/* Vintage Lantern - one on back wall */}
       <VintageLantern position={[-5, 2, -5]} rotation={[0, Math.PI / 4, 0]} />
