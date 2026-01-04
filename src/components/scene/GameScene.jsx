@@ -76,23 +76,27 @@ function CameraController() {
     }
   }, [gamePhase]);
   
-  // Lock camera to shooter's POV during trigger sequence
+  // Lock camera to MY POV during MY trigger sequence (not opponent's)
   useEffect(() => {
     if (triggerSequencePhase !== null && triggerSequenceShooter !== null) {
-      // Camera should be behind the shooter
-      const shooterAngle = triggerSequenceShooter === 'player' ? 0 : Math.PI;
+      // Only lock camera if I'm the one shooting
+      const isMyShot = triggerSequenceShooter === myRole;
       
-      if (previousShooterRef.current !== triggerSequenceShooter) {
-        shouldResetRef.current = true;
-        userInteractingRef.current = false; // Override user control during sequence
-        previousShooterRef.current = triggerSequenceShooter;
+      if (isMyShot) {
+        // Lock camera behind ME when I'm shooting
+        if (previousShooterRef.current !== triggerSequenceShooter) {
+          shouldResetRef.current = true;
+          userInteractingRef.current = false; // Override user control during MY sequence
+          previousShooterRef.current = triggerSequenceShooter;
+        }
+        
+        targetAngleRef.current = myAngle; // Lock to MY angle
       }
-      
-      targetAngleRef.current = shooterAngle;
+      // If opponent is shooting, don't lock camera - let user freely observe
     } else {
       previousShooterRef.current = null;
     }
-  }, [triggerSequencePhase, triggerSequenceShooter]);
+  }, [triggerSequencePhase, triggerSequenceShooter, myRole, myAngle]);
   
   // Track user interaction with controls
   useEffect(() => {
@@ -129,19 +133,20 @@ function CameraController() {
   useFrame((state, delta) => {
     if (!cameraRef.current || !controlsRef.current) return;
     
-    // During trigger sequence, always animate camera to shooter's POV
+    // During trigger sequence, check if it's MY turn
     const isTriggerSequence = gamePhase === 'triggerSequence';
+    const isMyShot = isTriggerSequence && triggerSequenceShooter === myRole;
     
-    // Only animate camera during active gameplay or trigger sequence
-    if (gamePhase !== 'playing' && gamePhase !== 'shooting' && gamePhase !== 'cardGame' && !isTriggerSequence) return;
+    // Only animate camera during active gameplay or MY trigger sequence
+    if (gamePhase !== 'playing' && gamePhase !== 'shooting' && gamePhase !== 'cardGame' && !isMyShot) return;
     
-    // During trigger sequence, override user control and lock to shooter
-    if (isTriggerSequence) {
+    // During MY trigger sequence, override user control and lock to MY POV
+    if (isMyShot) {
       userInteractingRef.current = false;
     }
     
-    // Don't auto-move camera if user is interacting (except during trigger sequence)
-    if (userInteractingRef.current && !isTriggerSequence) return;
+    // Don't auto-move camera if user is interacting (except during MY trigger sequence)
+    if (userInteractingRef.current && !isMyShot) return;
     
     // Calculate target position
     const targetX = Math.sin(targetAngleRef.current) * radius;
@@ -158,8 +163,8 @@ function CameraController() {
         shortestAngleDiff = angleDiff - Math.sign(angleDiff) * 2 * Math.PI;
       }
       
-      // Faster rotation during trigger sequence for dramatic effect
-      const rotationSpeed = isTriggerSequence ? 3.0 : 1.5;
+      // Faster rotation during MY trigger sequence for dramatic effect
+      const rotationSpeed = isMyShot ? 3.0 : 1.5;
       currentAngleRef.current += shortestAngleDiff * delta * rotationSpeed;
       
       // Calculate camera position in a circle around the table

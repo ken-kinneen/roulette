@@ -10,8 +10,10 @@ export function GameOverScreen() {
   const showNameInput = useGameStore((state) => state.showNameInput);
   const resetGame = useGameStore((state) => state.resetGame);
   const gameMode = useGameStore((state) => state.gameMode);
-  const currentTurn = useGameStore((state) => state.currentTurn);
   const isHost = useGameStore((state) => state.isHost);
+  const pvpPlayerWins = useGameStore((state) => state.pvpPlayerWins);
+  const pvpOpponentWins = useGameStore((state) => state.pvpOpponentWins);
+  const pvpMatchWinner = useGameStore((state) => state.pvpMatchWinner);
 
   // Don't show if name input modal is open
   if (gamePhase !== 'gameOver' || showNameInput) return null;
@@ -19,12 +21,14 @@ export function GameOverScreen() {
   const hasSubmitted = submittedRank !== null;
   const isPvP = gameMode === 'pvp';
   
-  // In PvP, determine winner/loser
-  // currentTurn is the person who got shot (since turn doesn't switch after death)
+  // In PvP, determine winner/loser based on match winner
   // Host plays as 'player', guest plays as 'ai'
   const myRole = isPvP ? (isHost ? 'player' : 'ai') : 'player';
-  const playerWon = isPvP && currentTurn !== myRole; // I won if the OTHER person got shot
-  const playerLost = isPvP && currentTurn === myRole; // I lost if I got shot
+  const playerWon = isPvP && pvpMatchWinner === myRole;
+  
+  // Calculate my score vs opponent score for display
+  const myWins = isHost ? pvpPlayerWins : pvpOpponentWins;
+  const oppWins = isHost ? pvpOpponentWins : pvpPlayerWins;
 
   return (
     <div className="game-over-screen">
@@ -38,6 +42,14 @@ export function GameOverScreen() {
             <h1 className={`game-over-title ${playerWon ? 'victory' : 'defeat'}`}>
               {playerWon ? 'VICTORY!' : 'DEFEAT'}
             </h1>
+            <div className="pvp-final-score">
+              <span className="pvp-final-label">FINAL SCORE</span>
+              <div className="pvp-final-numbers">
+                <span className={`pvp-final-mine ${playerWon ? 'winner' : ''}`}>{myWins}</span>
+                <span className="pvp-final-divider">-</span>
+                <span className={`pvp-final-theirs ${!playerWon ? 'winner' : ''}`}>{oppWins}</span>
+              </div>
+            </div>
             <div className="pvp-result-text">
               {playerWon ? 'Your opponent has fallen.' : 'You have been eliminated.'}
             </div>

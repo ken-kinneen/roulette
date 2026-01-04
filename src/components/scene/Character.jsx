@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGLTF, useAnimations } from '@react-three/drei';
+import { useGLTF, useAnimations, Text } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
@@ -14,6 +14,29 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const currentTurn = useGameStore((state) => state.currentTurn);
   const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
   const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
+  const gameMode = useGameStore((state) => state.gameMode);
+  const isHost = useGameStore((state) => state.isHost);
+  const playerName = useGameStore((state) => state.playerName);
+  const opponentName = useGameStore((state) => state.opponentName);
+
+  // Determine the display name for this character
+  const displayName = useMemo(() => {
+    if (gameMode === 'solo') {
+      // Solo mode: player is "You" or their name, AI is "Vlad"
+      if (isPlayer) return playerName || 'You';
+      return 'Vlad';
+    }
+    // PvP mode
+    if (isHost) {
+      // Host perspective: player is host, AI character is guest (opponent)
+      if (isPlayer) return playerName || 'You';
+      return opponentName || 'Opponent';
+    } else {
+      // Guest perspective: player is guest, AI character is host (opponent)
+      if (isPlayer) return playerName || 'You';
+      return opponentName || 'Opponent';
+    }
+  }, [gameMode, isHost, isPlayer, playerName, opponentName]);
   
   // Load different models based on whether this is player or AI
   const characterModelPath = isPlayer ? '/solider/Meshy_AI_Character_output.glb' : '/russian/character.glb';
@@ -265,8 +288,28 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     ? [Math.PI, 0, Math.PI]  // Barrel pointing at left temple
     : [-Math.PI , 0, -Math.PI  ];  // Barrel pointing at right temple
 
+  // Check if we should show the name label (during active gameplay)
+  const showNameLabel = gamePhase !== 'start' && gamePhase !== 'lobby';
+
   return (
     <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
+      {/* Floating name label above head */}
+      {showNameLabel && displayName && (
+        <Text
+          position={[0, 1.6, 0]}
+          rotation={isPlayer ? [0, 0, 0] : [0, Math.PI, 0]}
+          fontSize={0.12}
+          color="#d4c4a8"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.008}
+          outlineColor="#0a0806"
+          letterSpacing={0.08}
+        >
+          {displayName.toUpperCase()}
+        </Text>
+      )}
+
       {/* Character model - positioned to sit on chair seat level */}
       <group
         position={isPlayer ? [0.03, -0.10, -0.0] : [0.02, 0.1, 0]}

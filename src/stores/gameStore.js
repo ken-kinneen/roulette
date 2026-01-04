@@ -104,13 +104,19 @@ export const useGameStore = create((set, get) => ({
     opponentConnected: false,
     roomCode: null,
     connectionError: null,
+    pvpPlayerWins: 0, // Best of 3 - host/player wins
+    pvpOpponentWins: 0, // Best of 3 - guest/opponent wins
+    pvpMatchWinner: null, // 'player' or 'ai' when match is over
 
     // Global leaderboard state
     globalLeaderboard: [],
     globalLeaderboardLoading: false,
     showNameInput: false,
     submittedRank: null,
-    playerName: null,
+    
+    // Player name (persisted to localStorage)
+    playerName: typeof window !== "undefined" ? localStorage.getItem("playerName") || "" : "",
+    opponentName: "",
 
     // Trigger sequence state
     triggerSequencePhase: null, // 'drop', 'heartbeat', 'spin', 'pull', 'result', 'sigh', null
@@ -275,65 +281,108 @@ export const useGameStore = create((set, get) => ({
 
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
-        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard, gameMode, cardGameGuesser } = get();
+        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard, gameMode, cardGameGuesser, pvpPlayerWins, pvpOpponentWins } = get();
         const shotNumber = bulletsShot + 1;
 
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
 
         if (isBulletFired) {
-            if (currentTurn === "player") {
-                const newLives = lives - 1;
-                if (newLives <= 0) {
-                    // Game over - check if qualifies for leaderboard (only in solo mode)
-                    setTimeout(() => playDeath(), 300);
-
-                    const qualifiesForLeaderboard =
-                        gameMode === "solo" &&
-                        roundsSurvived > 0 &&
-                        (globalLeaderboard.length < 100 || roundsSurvived > (globalLeaderboard[globalLeaderboard.length - 1]?.rounds || 0));
-
-                    set({
-                        bulletsShot: shotNumber,
-                        shotHistory: newHistory,
-                        gamePhase: "gameOver",
-                        showNameInput: qualifiesForLeaderboard,
-                        isAnimating: false,
-                    });
-
-                    // Sync state in PvP
-                    if (gameMode === "pvp") {
-                        get().syncStateToOpponent();
+            // Handle PvP mode (best of 3)
+            if (gameMode === "pvp") {
+                setTimeout(() => playDeath(), 300);
+                
+                if (currentTurn === "player") {
+                    // Player got shot - opponent wins this round
+                    const newOpponentWins = pvpOpponentWins + 1;
+                    
+                    if (newOpponentWins >= 2) {
+                        // Opponent wins the match (best of 3)
+                        set({
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            pvpOpponentWins: newOpponentWins,
+                            pvpMatchWinner: "ai",
+                            gamePhase: "gameOver",
+                            isAnimating: false,
+                        });
+                    } else {
+                        // Opponent wins round, but match continues
+                        set({
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            pvpOpponentWins: newOpponentWins,
+                            gamePhase: "playerDead",
+                            isAnimating: false,
+                        });
                     }
                 } else {
-                    // Player loses a life but continues (only in solo mode)
-                    setTimeout(() => playDeath(), 300);
-                    set({
-                        lives: newLives,
-                        bulletsShot: shotNumber,
-                        shotHistory: newHistory,
-                        gamePhase: "playerDead",
-                        isAnimating: false,
-                    });
-
-                    // Sync state in PvP
-                    if (gameMode === "pvp") {
-                        get().syncStateToOpponent();
+                    // Opponent got shot - player wins this round
+                    const newPlayerWins = pvpPlayerWins + 1;
+                    
+                    if (newPlayerWins >= 2) {
+                        // Player wins the match (best of 3)
+                        setTimeout(() => playLevelUp(), 500);
+                        set({
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            pvpPlayerWins: newPlayerWins,
+                            pvpMatchWinner: "player",
+                            gamePhase: "gameOver",
+                            isAnimating: false,
+                        });
+                    } else {
+                        // Player wins round, but match continues
+                        setTimeout(() => playLevelUp(), 500);
+                        set({
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            pvpPlayerWins: newPlayerWins,
+                            gamePhase: "aiDead",
+                            isAnimating: false,
+                        });
                     }
                 }
+                get().syncStateToOpponent();
             } else {
-                // AI got shot - player survives another round!
-                setTimeout(() => playLevelUp(), 500);
-                set({
-                    bulletsShot: shotNumber,
-                    shotHistory: newHistory,
-                    roundsSurvived: roundsSurvived + 1,
-                    gamePhase: "aiDead",
-                    isAnimating: false,
-                });
+                // Solo mode
+                if (currentTurn === "player") {
+                    const newLives = lives - 1;
+                    if (newLives <= 0) {
+                        // Game over - check if qualifies for leaderboard
+                        setTimeout(() => playDeath(), 300);
 
-                // Sync state in PvP
-                if (gameMode === "pvp") {
-                    get().syncStateToOpponent();
+                        const qualifiesForLeaderboard =
+                            roundsSurvived > 0 &&
+                            (globalLeaderboard.length < 100 || roundsSurvived > (globalLeaderboard[globalLeaderboard.length - 1]?.rounds || 0));
+
+                        set({
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            gamePhase: "gameOver",
+                            showNameInput: qualifiesForLeaderboard,
+                            isAnimating: false,
+                        });
+                    } else {
+                        // Player loses a life but continues
+                        setTimeout(() => playDeath(), 300);
+                        set({
+                            lives: newLives,
+                            bulletsShot: shotNumber,
+                            shotHistory: newHistory,
+                            gamePhase: "playerDead",
+                            isAnimating: false,
+                        });
+                    }
+                } else {
+                    // AI got shot - player survives another round!
+                    setTimeout(() => playLevelUp(), 500);
+                    set({
+                        bulletsShot: shotNumber,
+                        shotHistory: newHistory,
+                        roundsSurvived: roundsSurvived + 1,
+                        gamePhase: "aiDead",
+                        isAnimating: false,
+                    });
                 }
             }
         } else {
@@ -616,6 +665,57 @@ export const useGameStore = create((set, get) => ({
         }, 800);
     },
 
+    // Continue to next round in PvP (best of 3)
+    continuePvpRound: () => {
+        const { isHost, gameMode } = get();
+        
+        if (gameMode !== "pvp") return;
+
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+
+        playCylinderSpin();
+
+        const deck = createDeck();
+        const currentCard = deck.pop();
+        const bulletPosition = getRandomBulletPosition();
+
+        set({
+            bulletsShot: 0,
+            bulletPosition,
+            currentTurn: "player",
+            gamePhase: "cardGame",
+            shotHistory: [],
+            isAnimating: false,
+            deck,
+            currentCard,
+            nextCard: null,
+            cardGamePhase: "dealing",
+            lastGuess: null,
+            lastGuessResult: null,
+            cardGameWinner: null,
+            cardGameGuesser: null,
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
+        });
+
+        // Sync to opponent
+        if (isHost) {
+            get().syncStateToOpponent();
+        }
+
+        setTimeout(() => {
+            playCardSlide();
+            set({ cardGamePhase: "guessing" });
+            if (isHost) {
+                get().syncStateToOpponent();
+            }
+        }, 800);
+    },
+
     resetGame: () => {
         // Clean up any running trigger sequence
         const cleanup = get().triggerSequenceCleanup;
@@ -647,6 +747,9 @@ export const useGameStore = create((set, get) => ({
             showNameInput: false,
             submittedRank: null,
             playerName: null,
+            pvpPlayerWins: 0,
+            pvpOpponentWins: 0,
+            pvpMatchWinner: null,
         });
 
         // Reload leaderboard
@@ -684,6 +787,19 @@ export const useGameStore = create((set, get) => ({
         set({ showNameInput: false });
     },
 
+    // Set player name (persisted to localStorage)
+    setPlayerName: (name) => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("playerName", name);
+        }
+        set({ playerName: name });
+    },
+
+    // Set opponent name (received from peer)
+    setOpponentName: (name) => {
+        set({ opponentName: name });
+    },
+
     // Multiplayer actions
     enterLobby: () => {
         set({ gamePhase: "lobby", gameMode: "pvp" });
@@ -697,6 +813,12 @@ export const useGameStore = create((set, get) => ({
             // Setup connection handler
             peerManager.onConnection(() => {
                 set({ opponentConnected: true });
+                // Send our name to the guest
+                const { playerName } = get();
+                peerManager.sendGameState({
+                    type: "playerInfo",
+                    name: playerName || "Host",
+                });
             });
 
             // Setup disconnect handler
@@ -711,6 +833,11 @@ export const useGameStore = create((set, get) => ({
 
             // Setup state sync receiver (for guest moves)
             peerManager.onGameState((state) => {
+                // Handle player info from guest
+                if (state.type === "playerInfo") {
+                    set({ opponentName: state.name || "Guest" });
+                    return;
+                }
                 // Guest sends their moves, host applies them
                 if (state.action === "makeGuess") {
                     get().makeGuess(state.guess);
@@ -729,6 +856,15 @@ export const useGameStore = create((set, get) => ({
             await peerManager.joinRoom(roomCode);
             set({ roomCode, isHost: false, opponentConnected: true, connectionError: null });
 
+            // Send our name to the host
+            const { playerName } = get();
+            setTimeout(() => {
+                peerManager.sendGameState({
+                    type: "playerInfo",
+                    name: playerName || "Guest",
+                });
+            }, 100);
+
             // Setup disconnect handler
             peerManager.onDisconnect(() => {
                 set({ opponentConnected: false, connectionError: "Host disconnected" });
@@ -741,6 +877,11 @@ export const useGameStore = create((set, get) => ({
 
             // Setup state sync receiver (host sends full game state)
             peerManager.onGameState((state) => {
+                // Handle player info from host
+                if (state.type === "playerInfo") {
+                    set({ opponentName: state.name || "Host" });
+                    return;
+                }
                 // Receive full state updates from host
                 if (state.fullSync) {
                     set({
@@ -762,6 +903,9 @@ export const useGameStore = create((set, get) => ({
                         triggerSequencePhase: state.triggerSequencePhase,
                         triggerSequenceShooter: state.triggerSequenceShooter,
                         triggerSequenceWillFire: state.triggerSequenceWillFire,
+                        pvpPlayerWins: state.pvpPlayerWins,
+                        pvpOpponentWins: state.pvpOpponentWins,
+                        pvpMatchWinner: state.pvpMatchWinner,
                     });
                 }
             });
@@ -792,7 +936,7 @@ export const useGameStore = create((set, get) => ({
 
         const newState = {
             roundsSurvived: 0,
-            lives: 1, // PvP is single elimination
+            lives: 1,
             bulletsShot: 0,
             bulletPosition,
             currentTurn: "player",
@@ -811,6 +955,9 @@ export const useGameStore = create((set, get) => ({
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
             triggerSequenceWillFire: null,
+            pvpPlayerWins: 0,
+            pvpOpponentWins: 0,
+            pvpMatchWinner: null,
         };
 
         set(newState);
@@ -854,6 +1001,9 @@ export const useGameStore = create((set, get) => ({
                 triggerSequencePhase: state.triggerSequencePhase,
                 triggerSequenceShooter: state.triggerSequenceShooter,
                 triggerSequenceWillFire: state.triggerSequenceWillFire,
+                pvpPlayerWins: state.pvpPlayerWins,
+                pvpOpponentWins: state.pvpOpponentWins,
+                pvpMatchWinner: state.pvpMatchWinner,
             });
         }
     },
@@ -867,6 +1017,7 @@ export const useGameStore = create((set, get) => ({
             opponentConnected: false,
             roomCode: null,
             connectionError: null,
+            opponentName: "",
         });
     },
 }));

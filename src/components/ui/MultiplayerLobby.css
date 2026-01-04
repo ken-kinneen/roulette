@@ -309,3 +309,65 @@
   color: #d4c4a8;
 }
 
+/* Players Display */
+.players-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 30px;
+  background: rgba(10, 8, 6, 0.8);
+  border: 2px solid #5a4a3a;
+  border-radius: 8px;
+  min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.player-card.connected {
+  border-color: #4caf50;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+.player-card.host {
+  border-color: #c45c45;
+}
+
+.player-card.host.connected {
+  border-color: #c45c45;
+  box-shadow: 0 0 15px rgba(196, 92, 69, 0.3);
+}
+
+.player-role {
+  font-size: 0.7rem;
+  color: #8a7a6a;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.player-name-tag {
+  font-size: 1.1rem;
+  color: #d4c4a8;
+  font-weight: bold;
+  letter-spacing: 1px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-text {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  color: #c45c45;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(196, 92, 69, 0.5);
+}
+

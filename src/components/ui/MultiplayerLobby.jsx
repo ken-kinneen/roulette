@@ -12,6 +12,8 @@ export function MultiplayerLobby() {
   const joinRoom = useGameStore((state) => state.joinRoom);
   const startPvpGame = useGameStore((state) => state.startPvpGame);
   const leaveLobby = useGameStore((state) => state.leaveLobby);
+  const playerName = useGameStore((state) => state.playerName);
+  const opponentName = useGameStore((state) => state.opponentName);
 
   const [view, setView] = useState('menu'); // 'menu', 'host', 'join'
   const [joinCode, setJoinCode] = useState('');
@@ -130,11 +132,23 @@ export function MultiplayerLobby() {
               </button>
             </div>
 
+            <div className="players-display">
+              <div className="player-card host">
+                <span className="player-role">HOST</span>
+                <span className="player-name-tag">{playerName || 'You'}</span>
+              </div>
+              <span className="vs-text">VS</span>
+              <div className={`player-card guest ${opponentConnected ? 'connected' : ''}`}>
+                <span className="player-role">GUEST</span>
+                <span className="player-name-tag">{opponentConnected ? (opponentName || 'Player 2') : '???'}</span>
+              </div>
+            </div>
+
             <div className="connection-status">
               {opponentConnected ? (
                 <>
                   <span className="status-icon connected">✓</span>
-                  <span className="status-text">Opponent connected!</span>
+                  <span className="status-text">{opponentName || 'Opponent'} connected!</span>
                 </>
               ) : (
                 <>
@@ -162,11 +176,23 @@ export function MultiplayerLobby() {
         {/* Join View */}
         {view === 'join' && (
           <div className="lobby-join">
+            <div className="players-display">
+              <div className={`player-card host ${opponentConnected ? 'connected' : ''}`}>
+                <span className="player-role">HOST</span>
+                <span className="player-name-tag">{opponentConnected ? (opponentName || 'Host') : '???'}</span>
+              </div>
+              <span className="vs-text">VS</span>
+              <div className="player-card guest connected">
+                <span className="player-role">YOU</span>
+                <span className="player-name-tag">{playerName || 'Guest'}</span>
+              </div>
+            </div>
+
             <div className="connection-status">
               {opponentConnected ? (
                 <>
                   <span className="status-icon connected">✓</span>
-                  <span className="status-text">Connected to host!</span>
+                  <span className="status-text">Connected to {opponentName || 'host'}!</span>
                   <span className="status-subtext">Waiting for host to start...</span>
                 </>
               ) : (

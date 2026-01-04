@@ -379,4 +379,55 @@
   letter-spacing: 0.05rem;
 }
 
+/* PvP Final Score */
+.pvp-final-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 1.5rem 0;
+  padding: 20px 40px;
+  background: rgba(30, 25, 20, 0.5);
+  border: 1px solid rgba(138, 122, 106, 0.2);
+}
 
+.pvp-final-label {
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15rem;
+  color: #6a5a4a;
+}
+
+.pvp-final-numbers {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.pvp-final-mine {
+  color: #d4c4a8;
+  transition: all 0.3s ease;
+}
+
+.pvp-final-mine.winner {
+  color: #c4a145;
+  text-shadow: 0 0 20px rgba(196, 161, 69, 0.6);
+}
+
+.pvp-final-divider {
+  color: #6b5d4d;
+  font-size: 2rem;
+}
+
+.pvp-final-theirs {
+  color: #d4c4a8;
+  transition: all 0.3s ease;
+}
+
+.pvp-final-theirs.winner {
+  color: #c45c45;
+  text-shadow: 0 0 20px rgba(196, 92, 69, 0.5);
+}

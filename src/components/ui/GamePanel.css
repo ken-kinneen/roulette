@@ -1039,6 +1039,52 @@
 }
 
 /* ============================================
+   PVP SCORE DISPLAY
+   ============================================ */
+
+.pvp-score-block {
+  text-align: center;
+}
+
+.pvp-score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.pvp-score-you {
+  color: #8bc34a;
+  text-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
+}
+
+.pvp-score-divider {
+  color: #6b5d4d;
+}
+
+.pvp-score-opp {
+  color: #c45c45;
+  text-shadow: 0 0 10px rgba(196, 92, 69, 0.5);
+}
+
+.outcome-waiting {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8b7355;
+  font-style: italic;
+  animation: waitingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes waitingPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 

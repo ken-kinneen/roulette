@@ -50,6 +50,10 @@ export function GamePanel() {
   const triggerSequenceWillFire = useGameStore((state) => state.triggerSequenceWillFire);
   const gameMode = useGameStore((state) => state.gameMode);
   const isHost = useGameStore((state) => state.isHost);
+  const pvpPlayerWins = useGameStore((state) => state.pvpPlayerWins);
+  const pvpOpponentWins = useGameStore((state) => state.pvpOpponentWins);
+  const pvpMatchWinner = useGameStore((state) => state.pvpMatchWinner);
+  const continuePvpRound = useGameStore((state) => state.continuePvpRound);
   
   const [riskPulse, setRiskPulse] = useState(false);
   const prevBulletsShot = useRef(bulletsShot);
@@ -342,7 +346,7 @@ export function GamePanel() {
             )}
 
 
-            {/* Outcomes */}
+            {/* Outcomes - Solo Mode */}
             {gamePhase === 'playerDead' && lives > 0 && !isPvP && (
               <div className="outcome death">
                 <span className="outcome-emoji">💀</span>
@@ -358,6 +362,27 @@ export function GamePanel() {
                 <span className="outcome-title">VLAD ELIMINATED!</span>
                 <span className="outcome-sub">Round {roundsSurvived} survived!</span>
                 <button className="outcome-btn win" onClick={nextRound}>NEXT ROUND</button>
+              </div>
+            )}
+
+            {/* Outcomes - PvP Mode (Best of 3) */}
+            {gamePhase === 'playerDead' && isPvP && !pvpMatchWinner && (
+              <div className="outcome death">
+                <span className="outcome-emoji">💀</span>
+                <span className="outcome-title">{isHost ? 'YOU GOT SHOT!' : 'OPPONENT GOT SHOT!'}</span>
+                <span className="outcome-sub">Score: {isHost ? pvpPlayerWins : pvpOpponentWins} - {isHost ? pvpOpponentWins : pvpPlayerWins}</span>
+                {isHost && <button className="outcome-btn" onClick={continuePvpRound}>NEXT ROUND</button>}
+                {!isHost && <span className="outcome-waiting">Waiting for host...</span>}
+              </div>
+            )}
+
+            {gamePhase === 'aiDead' && isPvP && !pvpMatchWinner && (
+              <div className="outcome victory">
+                <span className="outcome-emoji">🎯</span>
+                <span className="outcome-title">{isHost ? 'OPPONENT ELIMINATED!' : 'YOU ELIMINATED THEM!'}</span>
+                <span className="outcome-sub">Score: {isHost ? pvpPlayerWins : pvpOpponentWins} - {isHost ? pvpOpponentWins : pvpPlayerWins}</span>
+                {isHost && <button className="outcome-btn win" onClick={continuePvpRound}>NEXT ROUND</button>}
+                {!isHost && <span className="outcome-waiting">Waiting for host...</span>}
               </div>
             )}
           </div>
@@ -385,9 +410,13 @@ export function GamePanel() {
           </div>
 
           {isPvP && (
-            <div className="stat-block pvp-mode-block">
-              <span className="stat-label">PVP MODE</span>
-              <span className="stat-subtext">First to die loses</span>
+            <div className="stat-block pvp-score-block">
+              <div className="pvp-score-display">
+                <span className="pvp-score-you">{isHost ? pvpPlayerWins : pvpOpponentWins}</span>
+                <span className="pvp-score-divider">-</span>
+                <span className="pvp-score-opp">{isHost ? pvpOpponentWins : pvpPlayerWins}</span>
+              </div>
+              <span className="stat-label">BEST OF 3</span>
             </div>
           )}
         </div>

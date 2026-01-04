@@ -111,8 +111,27 @@ export function StartScreen() {
   const startGame = useGameStore((state) => state.startGame);
   const enterLobby = useGameStore((state) => state.enterLobby);
   const gamePhase = useGameStore((state) => state.gamePhase);
+  const playerName = useGameStore((state) => state.playerName);
+  const setPlayerName = useGameStore((state) => state.setPlayerName);
   const containerRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [localName, setLocalName] = useState(() => playerName || '');
+  const [isEditingName, setIsEditingName] = useState(() => !playerName);
+  const nameInputRef = useRef(null);
+
+  const handleNameSubmit = () => {
+    const trimmedName = localName.trim();
+    if (trimmedName) {
+      setPlayerName(trimmedName);
+      setIsEditingName(false);
+    }
+  };
+
+  const handleNameKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleNameSubmit();
+    }
+  };
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
@@ -143,6 +162,35 @@ export function StartScreen() {
       <div className="start-content">
         <h1 className="game-title">RUSSIAN</h1>
         <h1 className="game-title title-accent">ROULETTE</h1>
+
+        {/* Player name input section */}
+        <div className="name-section">
+          {isEditingName ? (
+            <div className="name-input-container">
+              <input
+                ref={nameInputRef}
+                type="text"
+                className="player-name-input"
+                placeholder="Enter your name..."
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                onKeyPress={handleNameKeyPress}
+                onBlur={handleNameSubmit}
+                maxLength={16}
+                autoFocus
+              />
+              <button className="name-confirm-btn" onClick={handleNameSubmit}>
+                ✓
+              </button>
+            </div>
+          ) : (
+            <div className="name-display" onClick={() => setIsEditingName(true)}>
+              <span className="name-label">PLAYER</span>
+              <span className="name-value">{playerName || 'ANONYMOUS'}</span>
+              <span className="name-edit-hint">✎</span>
+            </div>
+          )}
+        </div>
         
         <div className="revolver-icon">
           <Canvas 
