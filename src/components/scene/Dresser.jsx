@@ -24,3 +24,4 @@ export function Dresser({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 1 
 
 useGLTF.preload('/dresser.glb');
 
+

@@ -57,6 +57,45 @@ function createBarrelVaultGeometry(width, height, depth, segments = 32) {
   return geometry;
 }
 
+// Create arched end cap geometry to close off barrel vault ends
+function createArchedEndCapGeometry(width, height, segments = 32) {
+  const geometry = new THREE.BufferGeometry();
+  const vertices = [];
+  const indices = [];
+  const uvs = [];
+  const normals = [];
+  
+  const halfWidth = width / 2;
+  
+  // Center vertex
+  vertices.push(0, 0, 0);
+  normals.push(0, 0, 1); // Normal pointing outward (we'll flip for back wall)
+  uvs.push(0.5, 0);
+  
+  // Create vertices along the arch
+  for (let a = 0; a <= segments; a++) {
+    const angle = (a / segments) * Math.PI;
+    const x = Math.cos(angle) * halfWidth;
+    const y = Math.sin(angle) * height;
+    
+    vertices.push(x, y, 0);
+    normals.push(0, 0, 1);
+    uvs.push((Math.cos(angle) + 1) / 2, Math.sin(angle));
+  }
+  
+  // Create triangles from center to arch edge
+  for (let a = 0; a < segments; a++) {
+    indices.push(0, a + 1, a + 2);
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  
+  return geometry;
+}
+
 // Create archway geometry
 function ArchWay({ position, size = [3, 4, 0.5], rotation = [0, 0, 0] }) {
   const archGeometry = useMemo(() => {
@@ -105,7 +144,7 @@ function ArchWay({ position, size = [3, 4, 0.5], rotation = [0, 0, 0] }) {
 }
 
 export function Room() {
-  const roomSize = { width: 8, height: 3.5, depth: 8 };
+  const roomSize = { width: 12, height: 6, depth: 12 };
 
   // Load and process the map texture - make white transparent, darken, add vignette
   const [mapTexture, setMapTexture] = useState(null);
@@ -444,6 +483,11 @@ export function Room() {
     return createBarrelVaultGeometry(roomSize.width, roomSize.height, roomSize.depth, 48);
   }, [roomSize.width, roomSize.height, roomSize.depth]);
 
+  // Arched end cap geometry for front and back walls
+  const endCapGeometry = useMemo(() => {
+    return createArchedEndCapGeometry(roomSize.width, roomSize.height, 48);
+  }, [roomSize.width, roomSize.height]);
+
   // Materials
   const floorMaterial = useMemo(() => 
     new THREE.MeshStandardMaterial({
@@ -458,7 +502,7 @@ export function Room() {
       map: sideWallTexture || wallTexture,
       roughness: 0.95,
       metalness: 0.0,
-      side: THREE.BackSide,
+      side: THREE.FrontSide,
     }), [sideWallTexture, wallTexture]
   );
 
@@ -467,6 +511,7 @@ export function Room() {
       map: backWallTexture || wallTexture,
       roughness: 0.95,
       metalness: 0.0,
+      side: THREE.DoubleSide,
     }), [backWallTexture, wallTexture]
   );
 
@@ -480,36 +525,43 @@ export function Room() {
       {/* Barrel Vault Ceiling/Walls - the curved bunker structure */}
       <mesh geometry={vaultGeometry} material={wallMaterial} receiveShadow />
 
-      {/* Back Wall - closes off the vault */}
-      <mesh position={[0, roomSize.height / 2, -roomSize.depth / 2]} receiveShadow material={backWallMaterial}>
-        <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
-      </mesh>
-
-      {/* Front Wall - closes off the vault with archway feel */}
+      {/* Back Wall - arched end cap that matches vault shape */}
       <mesh 
+        geometry={endCapGeometry} 
+        position={[0, 0, -roomSize.depth / 2]} 
         rotation={[0, Math.PI, 0]}
-        position={[0, roomSize.height / 2, roomSize.depth / 2]} 
+        receiveShadow 
+        material={backWallMaterial}
+      />
+
+      {/* Front Wall - arched end cap that matches vault shape */}
+      <mesh 
+        geometry={endCapGeometry}
+        position={[0, 0, roomSize.depth / 2]} 
         receiveShadow
       >
-        <planeGeometry args={[roomSize.width, roomSize.height * 2]} />
-        <meshStandardMaterial map={sideWallTexture || wallTexture} roughness={0.95} />
+        <meshStandardMaterial 
+          map={sideWallTexture || wallTexture} 
+          roughness={0.95} 
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* Main pendant light - center, high up */}
-      <group position={[0, 4.5, 0]}>
+      <group position={[0, 5.5, 0]}>
         {/* Wire */}
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.008, 0.008, 0.6, 4]} />
+        <mesh position={[0, 0.4, 0]}>
+          <cylinderGeometry args={[0.01, 0.01, 0.8, 4]} />
           <meshStandardMaterial color="#1a1614" metalness={0.3} roughness={0.7} />
         </mesh>
         {/* Bulb housing */}
         <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[0.1, 0.12, 0.15, 8]} />
+          <cylinderGeometry args={[0.12, 0.14, 0.18, 8]} />
           <meshStandardMaterial color="#1a1614" metalness={0.2} roughness={0.8} />
         </mesh>
         {/* Warm glowing bulb */}
-        <mesh position={[0, -0.2, 0]}>
-          <sphereGeometry args={[0.06, 16, 16]} />
+        <mesh position={[0, -0.25, 0]}>
+          <sphereGeometry args={[0.08, 16, 16]} />
           <meshStandardMaterial 
             color="#ffaa55" 
             emissive="#ff8833"
@@ -520,8 +572,8 @@ export function Room() {
 
       {/* Map directly on back wall - large and prominent */}
       {mapTexture && (
-        <mesh position={[0, 2.8, -3.95]} receiveShadow>
-          <planeGeometry args={[3, 2]} />
+        <mesh position={[0, 3.2, -5.45]} receiveShadow>
+          <planeGeometry args={[3.5, 2.3]} />
           <meshStandardMaterial 
             map={mapTexture} 
             roughness={0.9}
@@ -532,26 +584,26 @@ export function Room() {
       )}
       {/* Map pins */}
       {[[1.0, 0.5], [-1.2, 0.4], [0.4, -0.5], [-0.8, -0.7], [0.8, -0.2]].map(([ox, oy], i) => (
-        <mesh key={i} position={[ox, 2.8 + oy, -3.9]}>
-          <sphereGeometry args={[0.03, 8, 8]} />
+        <mesh key={i} position={[ox, 3.2 + oy, -5.4]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
           <meshStandardMaterial color={i % 2 === 0 ? "#aa3322" : "#886633"} />
         </mesh>
       ))}
 
       {/* Dresser under the map */}
-      <Dresser position={[0, 1, -3.5]} rotation={[0, 0, 0]} scale={1} />
+      <Dresser position={[0, 1, -5]} rotation={[0, 0, 0]} scale={1.4} />
 
       {/* Metal bucket - corner */}
-      <mesh position={[2.8, 0.2, -2.5]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.15, 0.12, 0.4, 8]} />
+      <mesh position={[4, 0.2, -4]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.18, 0.14, 0.45, 8]} />
         <meshStandardMaterial color="#2a2622" roughness={0.85} metalness={0.15} />
       </mesh>
 
-      {/* Floor debris - scaled for smaller room */}
+      {/* Floor debris - scaled for room */}
       {[
-        [-1.5, 0.02, -2, 0.1],
-        [1, 0.02, -2.5, 0.08],
-        [-0.5, 0.02, 1.5, 0.07],
+        [-2, 0.02, -3, 0.12],
+        [1.5, 0.02, -4, 0.1],
+        [-1, 0.02, 2, 0.09],
       ].map(([x, y, z, s], i) => (
         <mesh key={i} position={[x, y, z]} rotation={[0, i * 0.5, 0]}>
           <boxGeometry args={[s, 0.015, s * 0.6]} />

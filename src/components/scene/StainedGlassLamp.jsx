@@ -16,7 +16,7 @@ export function StainedGlassLamp() {
 
   return (
     <group 
-      position={[0.8, tableHeight, -0.2]}
+      position={[0.9, tableHeight, 0]}
       rotation={[0, 0, 0]}
       scale={1.1}
     >

@@ -17,7 +17,7 @@ export function Ashtray({ scale = 1 }) {
   return (
     <primitive 
       object={clonedScene} 
-      position={[-0.8, tableHeight, 0.3]} 
+      position={[0.5, tableHeight, 0]} 
       scale={scale * 0.1}
       rotation={[0, Math.PI / 4, 0]}
     />

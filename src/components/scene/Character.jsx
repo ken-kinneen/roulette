@@ -81,6 +81,24 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const breathOffset = useMemo(() => (isPlayer ? 0 : Math.PI), [isPlayer]);
   const currentAnimation = useRef(null);
   const hasInitialized = useRef(false);
+  const rootBoneRef = useRef(null);
+  const rootBoneOriginalPosition = useRef(null);
+
+  // Find and store the root bone position to prevent animation offset
+  useEffect(() => {
+    if (!clonedScene) return;
+    
+    clonedScene.traverse((child) => {
+      if (child.isBone && !rootBoneRef.current) {
+        // Find the root bone (typically named "Hips", "Root", "Pelvis", or similar)
+        const boneName = child.name.toLowerCase();
+        if (boneName.includes('hips') || boneName.includes('root') || boneName.includes('pelvis') || child.parent?.type !== 'Bone') {
+          rootBoneRef.current = child;
+          rootBoneOriginalPosition.current = child.position.clone();
+        }
+      }
+    });
+  }, [clonedScene]);
 
   // Determine if this character is currently holding the gun
   const isMyTurn = (isPlayer && currentTurn === 'player') || (isAI && currentTurn === 'ai');
@@ -190,6 +208,11 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    // Lock root bone position to prevent animation offset
+    if (rootBoneRef.current && rootBoneOriginalPosition.current && !isDead) {
+      rootBoneRef.current.position.copy(rootBoneOriginalPosition.current);
+    }
+
     // Add gun shake during tense moments
     if (gunGroupRef.current && gunVisible) {
       // Subtle shake during trigger sequence
@@ -245,7 +268,10 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   return (
     <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
       {/* Character model - positioned to sit on chair seat level */}
-      <group position={[0, 0.2, 0.1]} scale={0.8}>
+      <group
+        position={isPlayer ? [0.03, -0.10, -0.0] : [0.02, 0.1, 0]}
+        scale={isPlayer ? 0.77 : 0.8}
+      >
         <primitive object={clonedScene} />
       </group>
 

@@ -139,7 +139,7 @@ function CameraController() {
         ref={cameraRef}
         makeDefault 
         position={[0, 2.8, 3.5]} 
-        fov={65}
+        fov={58} 
         near={0.1}
       />
       <OrbitControls 
@@ -163,15 +163,13 @@ export function GameScene() {
       <CameraController />
       
       {/* Atmospheric fog for smaller bunker */}
-      <fog attach="fog" args={['#1a1510', 4, 12]} />
+      <fog attach="fog" args={['rgb(61, 31, 2)', 2, 15]} />
       <color attach="background" args={['#0a0806']} />
-
-      <Lighting />
+       <Lighting />
       <Room />
       <Table />
       <WhiskeyBottle />
-      <Ashtray scale={4} />
-      <CashBowl />
+      <Ashtray scale={4} /> 
       
       {/* Ammo box on table */}
       <Ammo position={[-0.5, 1.16, -0]} rotation={[0, 0.6, 0]} scale={0.8} />
@@ -183,21 +181,22 @@ export function GameScene() {
       <StainedGlassLamp />
       
       {/* Sandbags in corner - scaled for smaller room */}
-      <Sandbags position={[-2.2, 0, -2.8]} rotation={[0, 0.4, 0]} scale={1.2} />
-      <Sandbags position={[2.2, 0, -2.8]} rotation={[0, -0.4, 0]} scale={1.2} />
+      <Sandbags position={[-3.3, 0, -4.6]} rotation={[0, 0, 0]} scale={1.4} />
+      <Sandbags position={[3.3, 0, -4.6]} rotation={[0, 0, 0]} scale={1.4} />
 
       {/* Rifles leaning against sandbags */}
-      <Rifle position={[-3, 0, -2]} rotation={[0.15, 0.7, 0.1]} scale={1} />
-      <Rifle position={[-2.5, 0, -1.8]} rotation={[0.12, 0.5, 0.08]} scale={1} />
+      <Rifle position={[-1.15, 0.7, 0.1]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
+      <Rifle position={[-1.15, 0.7, -0.10]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
       
       {/* Vintage Lantern - one on back wall */}
-      <VintageLantern position={[-3, 2, -3.5]} rotation={[0, Math.PI / 4, 0]} />
+      <VintageLantern position={[-5, 2, -5]} rotation={[0, Math.PI / 4, 0]} />
+      <VintageLantern position={[ 4, 2, -5]} rotation={[0, Math.PI / 4, 0]} />
 
       {/* Player (you) - facing the table from the front */}
-      <Character position={[0, 0, 1.2]} rotation={[0, Math.PI, 0]} isPlayer />
+      <Character position={[0, 0, 1 ]} rotation={[0, Math.PI, 0]} isPlayer />
 
       {/* AI opponent - facing the table from the back */}
-      <Character position={[0, 0, -1.2]} rotation={[0, 0, 0]} isAI />
+      <Character position={[0, 0, -1 ]} rotation={[0, 0, 0]} isAI />
 
       {/* Revolver held by current player */}
       <Revolver />
