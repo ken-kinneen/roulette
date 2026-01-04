@@ -11,13 +11,13 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const gunGroupRef = useRef();
   
   const gamePhase = useGameStore((state) => state.gamePhase);
-  const currentTurn = useGameStore((state) => state.currentTurn);
   const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
   const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
   const gameMode = useGameStore((state) => state.gameMode);
   const isHost = useGameStore((state) => state.isHost);
   const playerName = useGameStore((state) => state.playerName);
   const opponentName = useGameStore((state) => state.opponentName);
+  const pvpMatchWinner = useGameStore((state) => state.pvpMatchWinner);
 
   // Determine the display name and color for this character
   // Red = player/host (you), Blue = opponent/AI
@@ -132,21 +132,37 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     });
   }, [clonedScene]);
 
-  // Determine if this character is currently holding the gun
-  const isMyTurn = (isPlayer && currentTurn === 'player') || (isAI && currentTurn === 'ai');
-  const isInTriggerSequence = triggerSequencePhase !== null && triggerSequenceShooter === (isPlayer ? 'player' : 'ai');
+  // This character's role in the game
+  const thisCharacterRole = isPlayer ? 'player' : 'ai';
   
-  // Show gun when it's this character's turn during gameplay
-  const gunVisible = isMyTurn && (
-    gamePhase === 'playing' || 
-    gamePhase === 'cardGame' || 
-    gamePhase === 'triggerSequence' ||
-    isInTriggerSequence
-  );
+  // Is this character currently the shooter in the trigger sequence?
+  const isThisCharacterShooting = triggerSequenceShooter === thisCharacterRole;
+  
+  // Show gun ONLY during trigger sequence when this character is shooting
+  const gunVisible = (gamePhase === 'triggerSequence' && isThisCharacterShooting);
 
-  // Death states
-  const isDead = (isPlayer && (gamePhase === 'playerDead' || gamePhase === 'gameOver')) ||
-                 (isAI && gamePhase === 'aiDead');
+  // Death states - properly handle PvP game over
+  // In solo mode: playerDead/gameOver means player died, aiDead means AI died
+  // In PvP gameOver: use pvpMatchWinner to determine who died (the LOSER died)
+  const isPvP = gameMode === 'pvp';
+  const isDead = useMemo(() => {
+    // Intermediate round deaths
+    if (gamePhase === 'playerDead' && isPlayer) return true;
+    if (gamePhase === 'aiDead' && isAI) return true;
+    
+    // Game over state
+    if (gamePhase === 'gameOver') {
+      if (isPvP && pvpMatchWinner) {
+        // In PvP, the LOSER is dead (opposite of winner)
+        const loser = pvpMatchWinner === 'player' ? 'ai' : 'player';
+        return thisCharacterRole === loser;
+      }
+      // Solo mode: player always dies at gameOver
+      return isPlayer;
+    }
+    
+    return false;
+  }, [gamePhase, isPlayer, isAI, isPvP, pvpMatchWinner, thisCharacterRole]);
 
   // Determine target animation name
   const targetAnimation = useMemo(() => {
@@ -232,10 +248,10 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   // Export muzzle position for effects
   useEffect(() => {
-    if (isMyTurn && gunGroupRef.current) {
+    if (gunVisible && gunGroupRef.current) {
       window.__muzzlePosition = getMuzzleWorldPosition;
     }
-  }, [isMyTurn, getMuzzleWorldPosition]);
+  }, [gunVisible, getMuzzleWorldPosition]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -248,7 +264,7 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     // Add gun shake during tense moments
     if (gunGroupRef.current && gunVisible) {
       // Subtle shake during trigger sequence
-      if (isInTriggerSequence && triggerSequencePhase !== 'result') {
+      if (isThisCharacterShooting && triggerSequencePhase !== 'result') {
         const shakeAmount = 0.005;
         gunGroupRef.current.position.x += (Math.random() - 0.5) * shakeAmount;
         gunGroupRef.current.position.y += (Math.random() - 0.5) * shakeAmount;
@@ -293,9 +309,11 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
     : [-0.18, 1.12, -0.1];  // Left side of AI's head
   
   // Rotation: gun barrel pointing at the temple
+  // Player faces forward (rotation [0, Math.PI, 0]), AI faces backward (rotation [0, 0, 0])
+  // Gun needs to be rotated differently for each character's orientation
   const gunRotation = isPlayer
-    ? [Math.PI, 0, Math.PI]  // Barrel pointing at left temple
-    : [-Math.PI , 0, -Math.PI  ];  // Barrel pointing at right temple
+    ? [Math.PI, 0, Math.PI]  // Barrel pointing at left temple (player faces forward)
+    : [0, 0, 0];  // Barrel pointing at right temple (AI faces backward)
 
   // Check if we should show the name label (during active gameplay)
   const showNameLabel = gamePhase !== 'start' && gamePhase !== 'lobby';

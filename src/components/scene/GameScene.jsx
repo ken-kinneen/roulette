@@ -248,6 +248,10 @@ export function GameScene() {
       <Sandbags position={[-3.3, 0, -4.6]} rotation={[0, 0, 0]} scale={1.4} />
       <Sandbags position={[3.3, 0, -4.6]} rotation={[0, 0, 0]} scale={1.4} />
 
+        {/* Sandbags in corner - scaled for smaller room */}
+      <Sandbags position={[-3.6, 0, 6]} rotation={[0, 0, 0]} scale={1.4} />
+      <Sandbags position={[3.6, 0, 6]} rotation={[0, 0, 0]} scale={1.4} />
+
       {/* Rifles leaning against sandbags */}
       <Rifle position={[-1.15, 0.7, 0.1]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
       <Rifle position={[-1.15, 0.7, -0.10]} rotation={[0.15, Math.PI ,  -Math.PI/2]} scale={2} />
@@ -255,6 +259,10 @@ export function GameScene() {
       {/* Vintage Lantern - one on back wall */}
       <VintageLantern position={[-5, 2, -5]} rotation={[0, Math.PI / 4, 0]} />
       <VintageLantern position={[ 4, 2, -5]} rotation={[0, Math.PI / 4, 0]} />
+
+      {/* Vintage Lantern - one on back wall */}
+      <VintageLantern position={[-5, 2, 5]} rotation={[0, -Math.PI / 2, 0]} />
+      <VintageLantern position={[ 4, 2, 5]} rotation={[0, -Math.PI / 2, 0]} />
 
       {/* Player (you) - facing the table from the front */}
       <Character position={[0, 0, 1 ]} rotation={[0, Math.PI, 0]} isPlayer />

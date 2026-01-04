@@ -4,7 +4,7 @@ let isPlaying = false;
 
 export function initMusic() {
     if (!audio) {
-        audio = new Audio("src/assets/music/music.mp3");
+        audio = new Audio("/music/music.mp3");
         audio.loop = true;
         audio.volume = 0.1;
     }

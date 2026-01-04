@@ -1057,8 +1057,8 @@
 }
 
 .pvp-score-you {
-  color: #8bc34a;
-  text-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
+  color: #ff6b5b;  /* Bright red = you */
+  text-shadow: 0 0 10px rgba(255, 107, 91, 0.5);
 }
 
 .pvp-score-divider {
@@ -1066,8 +1066,8 @@
 }
 
 .pvp-score-opp {
-  color: #c45c45;
-  text-shadow: 0 0 10px rgba(196, 92, 69, 0.5);
+  color: #6ab0ff;  /* Bright blue = opponent */
+  text-shadow: 0 0 10px rgba(106, 176, 255, 0.5);
 }
 
 .outcome-waiting {
