@@ -48,14 +48,17 @@ export function GamePanel() {
   const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
   const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
   const triggerSequenceWillFire = useGameStore((state) => state.triggerSequenceWillFire);
+  const gameMode = useGameStore((state) => state.gameMode);
   
   const [riskPulse, setRiskPulse] = useState(false);
   const prevBulletsShot = useRef(bulletsShot);
   const vladCardTimeoutRef = useRef(null);
 
-  // Vlad makes card guess
+  const isPvP = gameMode === 'pvp';
+
+  // Vlad makes card guess (only in solo mode)
   useEffect(() => {
-    if (gamePhase === 'cardGame' && currentTurn === 'ai' && cardGamePhase === 'guessing' && !isAnimating) {
+    if (!isPvP && gamePhase === 'cardGame' && currentTurn === 'ai' && cardGamePhase === 'guessing' && !isAnimating) {
       vladCardTimeoutRef.current = setTimeout(() => {
         aiMakeGuess();
       }, 1500);
@@ -63,7 +66,7 @@ export function GamePanel() {
     return () => {
       if (vladCardTimeoutRef.current) clearTimeout(vladCardTimeoutRef.current);
     };
-  }, [gamePhase, currentTurn, cardGamePhase, isAnimating, aiMakeGuess]);
+  }, [gamePhase, currentTurn, cardGamePhase, isAnimating, aiMakeGuess, isPvP]);
 
   // Risk pulse animation
   useEffect(() => {
@@ -86,6 +89,10 @@ export function GamePanel() {
   const isVladGuessing = isCardGame && currentTurn === 'ai' && cardGamePhase === 'guessing';
   const isVladPredicting = isCardGame && cardGamePhase === 'vladPredicting';
   const isRevealing = cardGamePhase === 'revealing' || cardGamePhase === 'result';
+
+  // Labels for PvP vs Solo
+  const opponentLabel = isPvP ? 'OPPONENT' : 'VLAD';
+  const opponentLabelLower = isPvP ? 'Opponent' : 'Vlad';
 
   const getRiskLevel = () => {
     if (odds < 25) return 'low';
@@ -173,8 +180,8 @@ export function GamePanel() {
           <div className="turn-banner">
             <span className={`turn-who ${isTriggerSequence ? (triggerSequenceShooter === 'player' ? 'player' : 'vlad') : (isPlayerTurn ? 'player' : 'vlad')}`}>
               {isTriggerSequence 
-                ? (triggerSequenceShooter === 'player' ? 'YOUR FATE' : "VLAD'S FATE")
-                : (isPlayerTurn ? 'YOUR TURN' : "VLAD'S TURN")}
+                ? (triggerSequenceShooter === 'player' ? 'YOUR FATE' : `${opponentLabel}'S FATE`)
+                : (isPlayerTurn ? 'YOUR TURN' : `${opponentLabel}'S TURN`)}
             </span>
             <span className="turn-phase">
               {isCardGame ? '♠ HI-LO' : isTriggerSequence ? '• ROULETTE' : isRevolverPhase ? '• SHOOT' : ''}
@@ -224,13 +231,16 @@ export function GamePanel() {
               </div>
             )}
 
-            {/* Card game - Vlad thinking */}
+            {/* Card game - Vlad/Opponent thinking */}
             {isVladGuessing && (
-              <div className="status-msg vlad">VLAD IS THINKING<span className="dots">...</span></div>
+              <div className="status-msg vlad">
+                {isPvP ? 'WAITING FOR OPPONENT' : 'VLAD IS THINKING'}
+                <span className="dots">...</span>
+              </div>
             )}
 
-            {/* Card game - Vlad's prediction (shown before reveal) */}
-            {isVladPredicting && lastGuess && (
+            {/* Card game - Vlad's prediction (shown before reveal) - only in solo mode */}
+            {!isPvP && isVladPredicting && lastGuess && (
               <div className="vlad-prediction">
                 <span className="prediction-label">VLAD PREDICTS:</span>
                 <div className={`prediction-choice ${lastGuess}`}>
@@ -244,12 +254,12 @@ export function GamePanel() {
             {/* Card game - result */}
             {cardGamePhase === 'result' && lastGuessResult && (
               <div className={`result-msg ${lastGuessResult}`}>
-                <span className="result-who">{currentTurn === 'player' ? 'YOU' : 'VLAD'} GUESSED {lastGuess?.toUpperCase()}</span>
+                <span className="result-who">{currentTurn === 'player' ? 'YOU' : opponentLabel} GUESSED {lastGuess?.toUpperCase()}</span>
                 <span className="result-outcome">{lastGuessResult === 'correct' ? '✓ CORRECT!' : '✗ WRONG!'}</span>
                 <span className="result-consequence">
                   {lastGuessResult === 'correct' 
-                    ? `${currentTurn === 'player' ? 'VLAD' : 'YOU'} MUST SHOOT!`
-                    : `${currentTurn === 'player' ? 'YOU' : 'VLAD'} MUST SHOOT!`}
+                    ? `${currentTurn === 'player' ? opponentLabel : 'YOU'} MUST SHOOT!`
+                    : `${currentTurn === 'player' ? 'YOU' : opponentLabel} MUST SHOOT!`}
                 </span>
               </div>
             )}
@@ -262,11 +272,11 @@ export function GamePanel() {
                     <span className="sequence-icon">⚰️</span>
                     <span className="sequence-text">
                       {triggerSequenceShooter === 'player' 
-                        ? (cardGameWinner === 'ai' ? 'Wrong guess.' : 'Vlad was right.')
-                        : (cardGameWinner === 'player' ? 'You were right.' : 'Vlad guessed wrong.')}
+                        ? (cardGameWinner === 'ai' ? 'Wrong guess.' : `${opponentLabelLower} was right.`)
+                        : (cardGameWinner === 'player' ? 'You were right.' : `${opponentLabelLower} guessed wrong.`)}
                     </span>
                     <span className="sequence-subtext">
-                      {triggerSequenceShooter === 'player' ? 'You must fire.' : 'Vlad must fire.'}
+                      {triggerSequenceShooter === 'player' ? 'You must fire.' : `${opponentLabelLower} must fire.`}
                     </span>
                   </div>
                 )}
@@ -274,7 +284,7 @@ export function GamePanel() {
                   <div className="sequence-phase heartbeat-phase">
                     <span className="sequence-icon heartbeat-pulse">♠</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Silence...' : 'Vlad raises the gun...'}
+                      {triggerSequenceShooter === 'player' ? 'Silence...' : `${opponentLabelLower} raises the gun...`}
                     </span>
                   </div>
                 )}
@@ -290,7 +300,7 @@ export function GamePanel() {
                   <div className="sequence-phase pull-phase">
                     <span className="sequence-icon">•</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Pulling...' : 'Vlad pulls the trigger...'}
+                      {triggerSequenceShooter === 'player' ? 'Pulling...' : `${opponentLabelLower} pulls the trigger...`}
                     </span>
                   </div>
                 )}
@@ -315,7 +325,7 @@ export function GamePanel() {
                   <div className="sequence-phase sigh-phase">
                     <span className="sequence-icon sigh-icon">😮‍💨</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === 'player' ? 'Still alive...' : 'Vlad survives...'}
+                      {triggerSequenceShooter === 'player' ? 'Still alive...' : `${opponentLabelLower} survives...`}
                     </span>
                   </div>
                 )}
@@ -324,7 +334,7 @@ export function GamePanel() {
 
 
             {/* Outcomes */}
-            {gamePhase === 'playerDead' && lives > 0 && (
+            {gamePhase === 'playerDead' && lives > 0 && !isPvP && (
               <div className="outcome death">
                 <span className="outcome-emoji">💀</span>
                 <span className="outcome-title">YOU GOT SHOT!</span>
@@ -333,7 +343,7 @@ export function GamePanel() {
               </div>
             )}
 
-            {gamePhase === 'aiDead' && (
+            {gamePhase === 'aiDead' && !isPvP && (
               <div className="outcome victory">
                 <span className="outcome-emoji">🎯</span>
                 <span className="outcome-title">VLAD ELIMINATED!</span>
@@ -346,20 +356,31 @@ export function GamePanel() {
 
         {/* Right Section - Stats */}
         <div className="panel-section stats-section">
-          <div className="stat-block rounds-block">
-            <span className="stat-big">{roundsSurvived}</span>
-            <span className="stat-label">ROUNDS</span>
-          </div>
+          {!isPvP && (
+            <div className="stat-block rounds-block">
+              <span className="stat-big">{roundsSurvived}</span>
+              <span className="stat-label">ROUNDS</span>
+            </div>
+          )}
           
-          <div className="stat-block lives-block">
-            <div className="hearts-display">{renderHearts()}</div>
-            <span className="stat-label">LIVES</span>
-          </div>
+          {!isPvP && (
+            <div className="stat-block lives-block">
+              <div className="hearts-display">{renderHearts()}</div>
+              <span className="stat-label">LIVES</span>
+            </div>
+          )}
           
           <div className="stat-block chambers-block">
             <span className="stat-big">{6 - bulletsShot}</span>
             <span className="stat-label">CHAMBERS</span>
           </div>
+
+          {isPvP && (
+            <div className="stat-block pvp-mode-block">
+              <span className="stat-label">PVP MODE</span>
+              <span className="stat-subtext">First to die loses</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

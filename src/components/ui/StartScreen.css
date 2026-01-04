@@ -88,6 +88,24 @@
   overflow: hidden;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  min-width: 280px;
+}
+
+.multiplayer-button {
+  border-color: #8a7a6a;
+  color: #8a7a6a;
+  margin-top: 0.5rem;
+}
+
+.multiplayer-button:hover {
+  background: rgba(138, 122, 106, 0.15);
+  box-shadow: 0 0 30px rgba(138, 122, 106, 0.3);
+  border-color: #d4c4a8;
+  color: #d4c4a8;
+}
+
+.multiplayer-button .button-underline {
+  background: #8a7a6a;
 }
 
 .start-button:hover {

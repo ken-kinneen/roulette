@@ -8,6 +8,7 @@ import { HelpButton } from './components/ui/HelpButton';
 import { Leaderboard } from './components/ui/Leaderboard';
 import { NameInputModal } from './components/ui/NameInputModal';
 import { DevTools } from './components/ui/DevTools';
+import { MultiplayerLobby } from './components/ui/MultiplayerLobby';
 import './index.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <GameScene />
       <ScreenFlashOverlay />
       <StartScreen />
+      <MultiplayerLobby />
       <HelpButton />
       <Leaderboard />
       <GamePanel />

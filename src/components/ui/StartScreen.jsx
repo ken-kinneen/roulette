@@ -4,7 +4,6 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../stores/gameStore';
 import { playMusic } from '../../utils/music';
-import { startAmbience } from '../../utils/ambience';
 import './StartScreen.css';
 
 function RevolverModel({ mousePosition }) {
@@ -110,6 +109,7 @@ function RevolverModel({ mousePosition }) {
 
 export function StartScreen() {
   const startGame = useGameStore((state) => state.startGame);
+  const enterLobby = useGameStore((state) => state.enterLobby);
   const gamePhase = useGameStore((state) => state.gamePhase);
   const containerRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -129,6 +129,11 @@ export function StartScreen() {
     playMusic(); // Start background music on user interaction
     // startAmbience(0.4); // Start ambient bunker sounds - DISABLED
     startGame();
+  };
+
+  const handleMultiplayer = () => {
+    playMusic(); // Start background music on user interaction
+    enterLobby();
   };
 
   if (gamePhase !== 'start') return null;
@@ -167,10 +172,14 @@ export function StartScreen() {
 
      
         <button className="start-button" onClick={handleStart}>
-          <span className="button-text">START GAME</span>
+          <span className="button-text">VS VLAD</span>
           <span className="button-underline"></span>
         </button>
 
+        <button className="start-button multiplayer-button" onClick={handleMultiplayer}>
+          <span className="button-text">VS FRIEND</span>
+          <span className="button-underline"></span>
+        </button>
       
       </div>
     </div>

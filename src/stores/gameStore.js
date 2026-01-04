@@ -10,6 +10,7 @@ import {
     playCardSlide,
 } from "../utils/sounds";
 import { runTriggerSequence, clearSequenceTimeouts, stopAllTriggerSounds } from "../utils/triggerSequence";
+import { peerManager } from "../utils/peerConnection";
 
 const STARTING_LIVES = 3;
 
@@ -93,9 +94,16 @@ export const useGameStore = create((set, get) => ({
     bulletsShot: 0,
     bulletPosition: getRandomBulletPosition(),
     currentTurn: "player",
-    gamePhase: "start", // 'start', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'roundComplete', 'gameOver'
+    gamePhase: "start", // 'start', 'lobby', 'playing', 'triggerSequence', 'cardGame', 'shooting', 'playerDead', 'aiDead', 'roundComplete', 'gameOver'
     shotHistory: [],
     isAnimating: false,
+
+    // Multiplayer state
+    gameMode: "solo", // 'solo' or 'pvp'
+    isHost: false,
+    opponentConnected: false,
+    roomCode: null,
+    connectionError: null,
 
     // Global leaderboard state
     globalLeaderboard: [],
@@ -154,9 +162,18 @@ export const useGameStore = create((set, get) => ({
     },
 
     makeGuess: (guess) => {
-        const { deck, currentCard, currentTurn, isAnimating } = get();
+        const { deck, currentCard, currentTurn, isAnimating, gameMode, isHost } = get();
 
         if (isAnimating || deck.length === 0) return;
+
+        // In PvP mode, guest sends their move to host
+        if (gameMode === "pvp" && !isHost && currentTurn === "ai") {
+            peerManager.sendGameState({
+                action: "makeGuess",
+                guess: guess,
+            });
+            return;
+        }
 
         set({ isAnimating: true, lastGuess: guess, cardGamePhase: "revealing" });
 
@@ -177,6 +194,11 @@ export const useGameStore = create((set, get) => ({
                 cardGamePhase: "result",
             });
 
+            // Sync state in PvP
+            if (gameMode === "pvp") {
+                get().syncStateToOpponent();
+            }
+
             // After showing result, someone shoots - SNAPPY timing
             // If correct: opponent shoots
             // If wrong: guesser shoots
@@ -189,6 +211,11 @@ export const useGameStore = create((set, get) => ({
                     isAnimating: false,
                 });
 
+                // Sync state in PvP
+                if (gameMode === "pvp") {
+                    get().syncStateToOpponent();
+                }
+
                 // Start the trigger sequence immediately - no extra delay
                 get().startTriggerSequence(shooter);
             }, 800);
@@ -197,7 +224,7 @@ export const useGameStore = create((set, get) => ({
 
     // Start the automatic trigger sequence for either player or AI
     startTriggerSequence: (shooter = "player") => {
-        const { bulletsShot, bulletPosition } = get();
+        const { bulletsShot, bulletPosition, gameMode } = get();
         const shotNumber = bulletsShot + 1;
         const willFire = shotNumber === bulletPosition;
 
@@ -214,11 +241,20 @@ export const useGameStore = create((set, get) => ({
             isAnimating: true,
         });
 
+        // Sync state in PvP
+        if (gameMode === "pvp") {
+            get().syncStateToOpponent();
+        }
+
         const cleanup = runTriggerSequence({
             willFire,
             volume: 0.7,
             onPhaseChange: (phase) => {
                 set({ triggerSequencePhase: phase });
+                // Sync phase changes in PvP
+                if (gameMode === "pvp") {
+                    get().syncStateToOpponent();
+                }
             },
             onComplete: (result) => {
                 // Sequence complete - now process the actual shot
@@ -237,7 +273,7 @@ export const useGameStore = create((set, get) => ({
 
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
-        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard } = get();
+        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard, gameMode } = get();
         const shotNumber = bulletsShot + 1;
 
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
@@ -246,11 +282,11 @@ export const useGameStore = create((set, get) => ({
             if (currentTurn === "player") {
                 const newLives = lives - 1;
                 if (newLives <= 0) {
-                    // Game over - check if qualifies for leaderboard
+                    // Game over - check if qualifies for leaderboard (only in solo mode)
                     setTimeout(() => playDeath(), 300);
 
-                    // Check if score qualifies for leaderboard (top 100 or survived at least 1 round)
                     const qualifiesForLeaderboard =
+                        gameMode === "solo" &&
                         roundsSurvived > 0 &&
                         (globalLeaderboard.length < 100 || roundsSurvived > (globalLeaderboard[globalLeaderboard.length - 1]?.rounds || 0));
 
@@ -261,8 +297,13 @@ export const useGameStore = create((set, get) => ({
                         showNameInput: qualifiesForLeaderboard,
                         isAnimating: false,
                     });
+
+                    // Sync state in PvP
+                    if (gameMode === "pvp") {
+                        get().syncStateToOpponent();
+                    }
                 } else {
-                    // Player loses a life but continues
+                    // Player loses a life but continues (only in solo mode)
                     setTimeout(() => playDeath(), 300);
                     set({
                         lives: newLives,
@@ -271,6 +312,11 @@ export const useGameStore = create((set, get) => ({
                         gamePhase: "playerDead",
                         isAnimating: false,
                     });
+
+                    // Sync state in PvP
+                    if (gameMode === "pvp") {
+                        get().syncStateToOpponent();
+                    }
                 }
             } else {
                 // AI got shot - player survives another round!
@@ -282,6 +328,11 @@ export const useGameStore = create((set, get) => ({
                     gamePhase: "aiDead",
                     isAnimating: false,
                 });
+
+                // Sync state in PvP
+                if (gameMode === "pvp") {
+                    get().syncStateToOpponent();
+                }
             }
         } else {
             // Empty chamber - start a new card game round (snappy transition)
@@ -303,9 +354,18 @@ export const useGameStore = create((set, get) => ({
                 cardGameWinner: null,
             });
 
+            // Sync state in PvP
+            if (gameMode === "pvp") {
+                get().syncStateToOpponent();
+            }
+
             setTimeout(() => {
                 playCardSlide();
                 set({ cardGamePhase: "guessing" });
+                // Sync state in PvP
+                if (gameMode === "pvp") {
+                    get().syncStateToOpponent();
+                }
             }, 500);
         }
     },
@@ -370,6 +430,7 @@ export const useGameStore = create((set, get) => ({
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
             triggerSequenceWillFire: null,
+            gameMode: "solo", // Ensure solo mode
         });
 
         // Delay to show card dealing
@@ -612,6 +673,189 @@ export const useGameStore = create((set, get) => ({
 
     skipNameInput: () => {
         set({ showNameInput: false });
+    },
+
+    // Multiplayer actions
+    enterLobby: () => {
+        set({ gamePhase: "lobby", gameMode: "pvp" });
+    },
+
+    createRoom: async () => {
+        try {
+            const roomCode = await peerManager.createRoom();
+            set({ roomCode, isHost: true, connectionError: null });
+
+            // Setup connection handler
+            peerManager.onConnection(() => {
+                set({ opponentConnected: true });
+            });
+
+            // Setup disconnect handler
+            peerManager.onDisconnect(() => {
+                set({ opponentConnected: false, connectionError: "Opponent disconnected" });
+            });
+
+            // Setup error handler
+            peerManager.onError((err) => {
+                set({ connectionError: err.message || "Connection error" });
+            });
+
+            // Setup state sync receiver (for guest moves)
+            peerManager.onGameState((state) => {
+                // Guest sends their moves, host applies them
+                if (state.action === "makeGuess") {
+                    get().makeGuess(state.guess);
+                }
+            });
+
+            return roomCode;
+        } catch (error) {
+            set({ connectionError: error.message || "Failed to create room" });
+            throw error;
+        }
+    },
+
+    joinRoom: async (roomCode) => {
+        try {
+            await peerManager.joinRoom(roomCode);
+            set({ roomCode, isHost: false, opponentConnected: true, connectionError: null });
+
+            // Setup disconnect handler
+            peerManager.onDisconnect(() => {
+                set({ opponentConnected: false, connectionError: "Host disconnected" });
+            });
+
+            // Setup error handler
+            peerManager.onError((err) => {
+                set({ connectionError: err.message || "Connection error" });
+            });
+
+            // Setup state sync receiver (host sends full game state)
+            peerManager.onGameState((state) => {
+                // Receive full state updates from host
+                if (state.fullSync) {
+                    set({
+                        roundsSurvived: state.roundsSurvived,
+                        bulletsShot: state.bulletsShot,
+                        bulletPosition: state.bulletPosition,
+                        currentTurn: state.currentTurn,
+                        gamePhase: state.gamePhase,
+                        shotHistory: state.shotHistory,
+                        isAnimating: state.isAnimating,
+                        deck: state.deck,
+                        currentCard: state.currentCard,
+                        nextCard: state.nextCard,
+                        cardGamePhase: state.cardGamePhase,
+                        lastGuess: state.lastGuess,
+                        lastGuessResult: state.lastGuessResult,
+                        cardGameWinner: state.cardGameWinner,
+                        triggerSequencePhase: state.triggerSequencePhase,
+                        triggerSequenceShooter: state.triggerSequenceShooter,
+                        triggerSequenceWillFire: state.triggerSequenceWillFire,
+                    });
+                }
+            });
+        } catch (error) {
+            set({ connectionError: error.message || "Failed to join room" });
+            throw error;
+        }
+    },
+
+    startPvpGame: () => {
+        const { isHost } = get();
+        
+        if (!isHost) {
+            console.warn("Only host can start the game");
+            return;
+        }
+
+        // Clean up any running trigger sequence
+        const cleanup = get().triggerSequenceCleanup;
+        if (cleanup) cleanup();
+        clearSequenceTimeouts();
+        stopAllTriggerSounds();
+
+        playCylinderSpin();
+        const deck = createDeck();
+        const currentCard = deck.pop();
+        const bulletPosition = getRandomBulletPosition();
+
+        const newState = {
+            roundsSurvived: 0,
+            lives: 1, // PvP is single elimination
+            bulletsShot: 0,
+            bulletPosition,
+            currentTurn: "player",
+            gamePhase: "cardGame",
+            shotHistory: [],
+            isAnimating: false,
+            deck,
+            currentCard,
+            nextCard: null,
+            cardGamePhase: "dealing",
+            lastGuess: null,
+            lastGuessResult: null,
+            cardGameWinner: null,
+            triggerSequencePhase: null,
+            triggerSequenceCleanup: null,
+            triggerSequenceShooter: null,
+            triggerSequenceWillFire: null,
+        };
+
+        set(newState);
+
+        // Sync to guest
+        get().syncStateToOpponent();
+
+        // Delay to show card dealing
+        setTimeout(() => {
+            playCardSlide();
+            set({ cardGamePhase: "guessing" });
+            get().syncStateToOpponent();
+        }, 800);
+    },
+
+    syncStateToOpponent: () => {
+        const { isHost, opponentConnected, gameMode } = get();
+        
+        if (gameMode !== "pvp" || !opponentConnected) return;
+
+        if (isHost) {
+            // Host sends full state to guest
+            const state = get();
+            peerManager.sendGameState({
+                fullSync: true,
+                roundsSurvived: state.roundsSurvived,
+                bulletsShot: state.bulletsShot,
+                bulletPosition: state.bulletPosition,
+                currentTurn: state.currentTurn,
+                gamePhase: state.gamePhase,
+                shotHistory: state.shotHistory,
+                isAnimating: state.isAnimating,
+                deck: state.deck,
+                currentCard: state.currentCard,
+                nextCard: state.nextCard,
+                cardGamePhase: state.cardGamePhase,
+                lastGuess: state.lastGuess,
+                lastGuessResult: state.lastGuessResult,
+                cardGameWinner: state.cardGameWinner,
+                triggerSequencePhase: state.triggerSequencePhase,
+                triggerSequenceShooter: state.triggerSequenceShooter,
+                triggerSequenceWillFire: state.triggerSequenceWillFire,
+            });
+        }
+    },
+
+    leaveLobby: () => {
+        peerManager.disconnect();
+        set({
+            gamePhase: "start",
+            gameMode: "solo",
+            isHost: false,
+            opponentConnected: false,
+            roomCode: null,
+            connectionError: null,
+        });
     },
 }));
 
