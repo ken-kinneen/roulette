@@ -126,6 +126,7 @@ export const useGameStore = create((set, get) => ({
     lastGuess: null, // 'higher' or 'lower'
     lastGuessResult: null, // 'correct' or 'wrong'
     cardGameWinner: null, // 'player' or 'ai' or null
+    cardGameGuesser: null, // 'player' or 'ai' - who made the last guess (for turn tracking)
 
     // Audio state
     volume: 30, // 0-100
@@ -153,6 +154,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
         });
 
         // After dealing animation, move to guessing phase
@@ -175,7 +177,7 @@ export const useGameStore = create((set, get) => ({
             return;
         }
 
-        set({ isAnimating: true, lastGuess: guess, cardGamePhase: "revealing" });
+        set({ isAnimating: true, lastGuess: guess, cardGamePhase: "revealing", cardGameGuesser: currentTurn });
 
         // Draw the next card
         const newDeck = [...deck];
@@ -273,7 +275,7 @@ export const useGameStore = create((set, get) => ({
 
     // Process the result after trigger sequence completes
     processTriggerResult: (isBulletFired) => {
-        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard, gameMode } = get();
+        const { bulletsShot, currentTurn, lives, roundsSurvived, shotHistory, globalLeaderboard, gameMode, cardGameGuesser } = get();
         const shotNumber = bulletsShot + 1;
 
         const newHistory = [...shotHistory, { turn: currentTurn, shotNumber, hit: isBulletFired }];
@@ -336,12 +338,14 @@ export const useGameStore = create((set, get) => ({
             }
         } else {
             // Empty chamber - start a new card game round (snappy transition)
+            // Next turn goes to whoever didn't guess last (sequential turns regardless of win/lose)
             const deck = createDeck();
             const currentCard = deck.pop();
+            const nextGuesser = cardGameGuesser === "player" ? "ai" : "player";
 
             set({
                 bulletsShot: shotNumber,
-                currentTurn: currentTurn === "player" ? "ai" : "player",
+                currentTurn: nextGuesser,
                 shotHistory: newHistory,
                 gamePhase: "cardGame",
                 isAnimating: false,
@@ -352,6 +356,7 @@ export const useGameStore = create((set, get) => ({
                 lastGuess: null,
                 lastGuessResult: null,
                 cardGameWinner: null,
+                cardGameGuesser: null,
             });
 
             // Sync state in PvP
@@ -426,6 +431,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
@@ -560,6 +566,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
@@ -596,6 +603,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
@@ -631,6 +639,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
@@ -749,6 +758,7 @@ export const useGameStore = create((set, get) => ({
                         lastGuess: state.lastGuess,
                         lastGuessResult: state.lastGuessResult,
                         cardGameWinner: state.cardGameWinner,
+                        cardGameGuesser: state.cardGameGuesser,
                         triggerSequencePhase: state.triggerSequencePhase,
                         triggerSequenceShooter: state.triggerSequenceShooter,
                         triggerSequenceWillFire: state.triggerSequenceWillFire,
@@ -796,6 +806,7 @@ export const useGameStore = create((set, get) => ({
             lastGuess: null,
             lastGuessResult: null,
             cardGameWinner: null,
+            cardGameGuesser: null,
             triggerSequencePhase: null,
             triggerSequenceCleanup: null,
             triggerSequenceShooter: null,
@@ -839,6 +850,7 @@ export const useGameStore = create((set, get) => ({
                 lastGuess: state.lastGuess,
                 lastGuessResult: state.lastGuessResult,
                 cardGameWinner: state.cardGameWinner,
+                cardGameGuesser: state.cardGameGuesser,
                 triggerSequencePhase: state.triggerSequencePhase,
                 triggerSequenceShooter: state.triggerSequenceShooter,
                 triggerSequenceWillFire: state.triggerSequenceWillFire,

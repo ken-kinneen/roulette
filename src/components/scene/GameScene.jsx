@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { Room } from './Room';
@@ -24,28 +24,75 @@ import * as THREE from 'three';
 function CameraController() {
   const cameraRef = useRef();
   const controlsRef = useRef();
-  const currentTurn = useGameStore((state) => state.currentTurn);
   const gamePhase = useGameStore((state) => state.gamePhase);
-  const targetAngleRef = useRef(0); // 0 for player, Math.PI for AI
+  const gameMode = useGameStore((state) => state.gameMode);
+  const isHost = useGameStore((state) => state.isHost);
+  const triggerSequencePhase = useGameStore((state) => state.triggerSequencePhase);
+  const triggerSequenceShooter = useGameStore((state) => state.triggerSequenceShooter);
+  
+  const targetAngleRef = useRef(0); // 0 for player character, Math.PI for AI character
   const currentAngleRef = useRef(0);
-  const previousTurnRef = useRef('player');
+  const previousShooterRef = useRef(null);
   const shouldResetRef = useRef(false);
   const userInteractingRef = useRef(false);
   const interactionTimeoutRef = useRef(null);
+  const hasSetInitialPosition = useRef(false);
   
   // Camera orbit parameters - adjusted for smaller room (8x5x8)
   const radius = 3.5; // Smaller radius for smaller room
   const height = 2.8; // Lower height
-  const lookAtTarget = new THREE.Vector3(0, 0.9, 0); // Look at table center
+  const lookAtTarget = useMemo(() => new THREE.Vector3(0, 0.9, 0), []); // Look at table center
   
-  // Detect when turn changes to trigger camera reset
+  // In PvP: host plays as 'player' character, guest plays as 'ai' character
+  const isPvP = gameMode === 'pvp';
+  const myRole = isPvP ? (isHost ? 'player' : 'ai') : 'player';
+  const myAngle = myRole === 'player' ? 0 : Math.PI;
+  
+  // Set initial camera position based on role (guest starts behind Vlad)
   useEffect(() => {
-    if (previousTurnRef.current !== currentTurn) {
-      shouldResetRef.current = true;
-      userInteractingRef.current = false;
-      previousTurnRef.current = currentTurn;
+    if (!cameraRef.current || hasSetInitialPosition.current) return;
+    
+    // Only set initial position when entering a game (not start/lobby)
+    if (gamePhase !== 'cardGame' && gamePhase !== 'playing') return;
+    
+    const startAngle = myAngle;
+    const x = Math.sin(startAngle) * radius;
+    const z = Math.cos(startAngle) * radius;
+    
+    cameraRef.current.position.set(x, height, z);
+    currentAngleRef.current = startAngle;
+    targetAngleRef.current = startAngle;
+    hasSetInitialPosition.current = true;
+    
+    if (controlsRef.current) {
+      controlsRef.current.target.copy(lookAtTarget);
     }
-  }, [currentTurn]);
+  }, [gamePhase, myAngle, radius, height, lookAtTarget]);
+  
+  // Reset flag when going back to start
+  useEffect(() => {
+    if (gamePhase === 'start' || gamePhase === 'lobby') {
+      hasSetInitialPosition.current = false;
+    }
+  }, [gamePhase]);
+  
+  // Lock camera to shooter's POV during trigger sequence
+  useEffect(() => {
+    if (triggerSequencePhase !== null && triggerSequenceShooter !== null) {
+      // Camera should be behind the shooter
+      const shooterAngle = triggerSequenceShooter === 'player' ? 0 : Math.PI;
+      
+      if (previousShooterRef.current !== triggerSequenceShooter) {
+        shouldResetRef.current = true;
+        userInteractingRef.current = false; // Override user control during sequence
+        previousShooterRef.current = triggerSequenceShooter;
+      }
+      
+      targetAngleRef.current = shooterAngle;
+    } else {
+      previousShooterRef.current = null;
+    }
+  }, [triggerSequencePhase, triggerSequenceShooter]);
   
   // Track user interaction with controls
   useEffect(() => {
@@ -82,20 +129,25 @@ function CameraController() {
   useFrame((state, delta) => {
     if (!cameraRef.current || !controlsRef.current) return;
     
-    // Only animate camera during active gameplay
-    if (gamePhase !== 'playing' && gamePhase !== 'shooting') return;
+    // During trigger sequence, always animate camera to shooter's POV
+    const isTriggerSequence = gamePhase === 'triggerSequence';
     
-    // Don't auto-move camera if user is interacting
-    if (userInteractingRef.current) return;
+    // Only animate camera during active gameplay or trigger sequence
+    if (gamePhase !== 'playing' && gamePhase !== 'shooting' && gamePhase !== 'cardGame' && !isTriggerSequence) return;
     
-    // Determine target angle based on current turn
-    targetAngleRef.current = currentTurn === 'player' ? 0 : Math.PI;
+    // During trigger sequence, override user control and lock to shooter
+    if (isTriggerSequence) {
+      userInteractingRef.current = false;
+    }
+    
+    // Don't auto-move camera if user is interacting (except during trigger sequence)
+    if (userInteractingRef.current && !isTriggerSequence) return;
     
     // Calculate target position
     const targetX = Math.sin(targetAngleRef.current) * radius;
     const targetZ = Math.cos(targetAngleRef.current) * radius;
     
-    // If we need to reset (turn changed), smoothly interpolate to target
+    // If we need to reset (shooter changed or turn changed), smoothly interpolate to target
     if (shouldResetRef.current) {
       // Smoothly interpolate the angle for circular motion around the table
       const angleDiff = targetAngleRef.current - currentAngleRef.current;
@@ -106,7 +158,9 @@ function CameraController() {
         shortestAngleDiff = angleDiff - Math.sign(angleDiff) * 2 * Math.PI;
       }
       
-      currentAngleRef.current += shortestAngleDiff * delta * 1.5; // Smooth rotation speed
+      // Faster rotation during trigger sequence for dramatic effect
+      const rotationSpeed = isTriggerSequence ? 3.0 : 1.5;
+      currentAngleRef.current += shortestAngleDiff * delta * rotationSpeed;
       
       // Calculate camera position in a circle around the table
       const x = Math.sin(currentAngleRef.current) * radius;
@@ -133,12 +187,17 @@ function CameraController() {
     }
   });
   
+  // Calculate initial camera position based on role
+  // Guest starts behind Vlad (angle = Math.PI)
+  const initialX = Math.sin(myAngle) * radius;
+  const initialZ = Math.cos(myAngle) * radius;
+  
   return (
     <>
       <PerspectiveCamera 
         ref={cameraRef}
         makeDefault 
-        position={[0, 2.8, 3.5]} 
+        position={[initialX, height, initialZ]} 
         fov={58} 
         near={0.1}
       />
