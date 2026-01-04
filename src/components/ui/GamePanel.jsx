@@ -37,7 +37,6 @@ export function GamePanel() {
   const continueAfterDeath = useGameStore((state) => state.continueAfterDeath);
   const getCurrentOdds = useGameStore((state) => state.getCurrentOdds);
   const isAnimating = useGameStore((state) => state.isAnimating);
-  const cardGameWinner = useGameStore((state) => state.cardGameWinner);
   const currentCard = useGameStore((state) => state.currentCard);
   const nextCard = useGameStore((state) => state.nextCard);
   const cardGamePhase = useGameStore((state) => state.cardGamePhase);
@@ -54,6 +53,7 @@ export function GamePanel() {
   const pvpOpponentWins = useGameStore((state) => state.pvpOpponentWins);
   const pvpMatchWinner = useGameStore((state) => state.pvpMatchWinner);
   const continuePvpRound = useGameStore((state) => state.continuePvpRound);
+  const cardGameGuesser = useGameStore((state) => state.cardGameGuesser);
   
   const [riskPulse, setRiskPulse] = useState(false);
   const prevBulletsShot = useRef(bulletsShot);
@@ -62,9 +62,20 @@ export function GamePanel() {
   const isPvP = gameMode === 'pvp';
   
   // In PvP: host plays as 'player', guest plays as 'ai'
-  // Determine if it's MY turn to guess
+  // This is the SINGLE source of truth for "who am I" in the game
   const myRole = isPvP ? (isHost ? 'player' : 'ai') : 'player';
+  const opponentRole = myRole === 'player' ? 'ai' : 'player';
+  
+  // Derived turn states - use currentTurn for whose turn to guess
   const isMyTurn = currentTurn === myRole;
+  
+  // Derived guesser states - cardGameGuesser is the source of truth for who made the last guess
+  const iWasGuesser = cardGameGuesser === myRole;
+  const opponentWasGuesser = cardGameGuesser === opponentRole;
+  
+  // Derived shooter states - triggerSequenceShooter is the source of truth for who is shooting
+  const iAmShooting = triggerSequenceShooter === myRole;
+  const opponentIsShooting = triggerSequenceShooter === opponentRole;
 
   // Vlad makes card guess (only in solo mode)
   useEffect(() => {
@@ -191,9 +202,9 @@ export function GamePanel() {
         <div className="panel-section cards-section">
           {/* Turn Banner */}
           <div className="turn-banner">
-            <span className={`turn-who ${isTriggerSequence ? (triggerSequenceShooter === myRole ? 'player' : 'vlad') : (isMyTurn ? 'player' : 'vlad')}`}>
+            <span className={`turn-who ${isTriggerSequence ? (iAmShooting ? 'player' : 'vlad') : (isMyTurn ? 'player' : 'vlad')}`}>
               {isTriggerSequence 
-                ? (triggerSequenceShooter === myRole ? 'YOUR FATE' : `${opponentLabel}'S FATE`)
+                ? (iAmShooting ? 'YOUR FATE' : `${opponentLabel}'S FATE`)
                 : (isMyTurn ? 'YOUR TURN' : `${opponentLabel}'S TURN`)}
             </span>
             <span className="turn-phase">
@@ -267,12 +278,13 @@ export function GamePanel() {
             {/* Card game - result */}
             {cardGamePhase === 'result' && lastGuessResult && (
               <div className={`result-msg ${lastGuessResult}`}>
-                <span className="result-who">{currentTurn === myRole ? 'YOU' : opponentLabel} GUESSED {lastGuess?.toUpperCase()}</span>
+                <span className="result-who">{iWasGuesser ? 'YOU' : opponentLabel} GUESSED {lastGuess?.toUpperCase()}</span>
                 <span className="result-outcome">{lastGuessResult === 'correct' ? '✓ CORRECT!' : '✗ WRONG!'}</span>
                 <span className="result-consequence">
+                  {/* If guesser was correct, opponent shoots. If guesser was wrong, guesser shoots. */}
                   {lastGuessResult === 'correct' 
-                    ? `${currentTurn === myRole ? opponentLabel : 'YOU'} MUST SHOOT!`
-                    : `${currentTurn === myRole ? 'YOU' : opponentLabel} MUST SHOOT!`}
+                    ? `${iWasGuesser ? opponentLabel : 'YOU'} MUST SHOOT!`
+                    : `${iWasGuesser ? 'YOU' : opponentLabel} MUST SHOOT!`}
                 </span>
               </div>
             )}
@@ -284,12 +296,19 @@ export function GamePanel() {
                   <div className="sequence-phase drop-phase">
                     <span className="sequence-icon">⚰️</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === myRole 
-                        ? (cardGameWinner !== myRole ? 'Wrong guess.' : `${opponentLabelLower} was right.`)
-                        : (cardGameWinner === myRole ? 'You were right.' : `${opponentLabelLower} guessed wrong.`)}
+                      {/* 
+                        Logic based on who guessed and who is shooting:
+                        - If I'm shooting AND I was the guesser → I guessed wrong
+                        - If I'm shooting AND opponent was guesser → Opponent guessed right
+                        - If opponent is shooting AND I was the guesser → I guessed right
+                        - If opponent is shooting AND opponent was guesser → Opponent guessed wrong
+                      */}
+                      {iAmShooting
+                        ? (iWasGuesser ? 'Wrong guess.' : `${opponentLabelLower} was right.`)
+                        : (iWasGuesser ? 'You were right.' : `${opponentLabelLower} guessed wrong.`)}
                     </span>
                     <span className="sequence-subtext">
-                      {triggerSequenceShooter === myRole ? 'You must fire.' : `${opponentLabelLower} must fire.`}
+                      {iAmShooting ? 'You must fire.' : `${opponentLabelLower} must fire.`}
                     </span>
                   </div>
                 )}
@@ -297,7 +316,7 @@ export function GamePanel() {
                   <div className="sequence-phase heartbeat-phase">
                     <span className="sequence-icon heartbeat-pulse">♠</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === myRole ? 'Silence...' : `${opponentLabelLower} raises the gun...`}
+                      {iAmShooting ? 'Silence...' : `${opponentLabelLower} raises the gun...`}
                     </span>
                   </div>
                 )}
@@ -305,7 +324,7 @@ export function GamePanel() {
                   <div className="sequence-phase spin-phase">
                     <span className="sequence-icon spin-icon">⟳</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === myRole ? 'Chamber aligned...' : 'The cylinder clicks...'}
+                      {iAmShooting ? 'Chamber aligned...' : 'The cylinder clicks...'}
                     </span>
                   </div>
                 )}
@@ -313,7 +332,7 @@ export function GamePanel() {
                   <div className="sequence-phase pull-phase">
                     <span className="sequence-icon">•</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === myRole ? 'Pulling...' : `${opponentLabelLower} pulls the trigger...`}
+                      {iAmShooting ? 'Pulling...' : `${opponentLabelLower} pulls the trigger...`}
                     </span>
                   </div>
                 )}
@@ -328,7 +347,7 @@ export function GamePanel() {
                       <>
                         <span className="sequence-icon result-icon">—</span>
                         <span className="sequence-text">
-                          {triggerSequenceShooter === myRole ? 'Click.' : 'Empty.'}
+                          {iAmShooting ? 'Click.' : 'Empty.'}
                         </span>
                       </>
                     )}
@@ -338,7 +357,7 @@ export function GamePanel() {
                   <div className="sequence-phase sigh-phase">
                     <span className="sequence-icon sigh-icon">😮‍💨</span>
                     <span className="sequence-text">
-                      {triggerSequenceShooter === myRole ? 'Still alive...' : `${opponentLabelLower} survives...`}
+                      {iAmShooting ? 'Still alive...' : `${opponentLabelLower} survives...`}
                     </span>
                   </div>
                 )}

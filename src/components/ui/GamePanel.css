@@ -205,8 +205,8 @@
   letter-spacing: 0.1rem;
 }
 
-.turn-who.player { color: #8a9a7a; }
-.turn-who.vlad { color: #c45c45; }
+.turn-who.player { color: #ff6b5b; }  /* Bright red = you */
+.turn-who.vlad { color: #6ab0ff; }    /* Bright blue = opponent */
 
 .turn-phase {
   font-size: 0.7rem;
@@ -341,7 +341,7 @@
   color: rgba(212, 196, 168, 0.6);
 }
 
-.status-msg.vlad { color: #c45c45; }
+.status-msg.vlad { color: #6ab0ff; }  /* Bright blue = opponent */
 
 /* Vlad's Prediction Display */
 .vlad-prediction {

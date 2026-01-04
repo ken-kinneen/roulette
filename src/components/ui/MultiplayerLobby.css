@@ -224,7 +224,7 @@
 }
 
 .status-icon.connected {
-  color: #4caf50;
+  color: #6ab0ff;
   animation: pulse 2s ease infinite;
 }
 
@@ -332,17 +332,25 @@
 }
 
 .player-card.connected {
-  border-color: #4caf50;
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 0 15px rgba(106, 176, 255, 0.3);
 }
 
 .player-card.host {
-  border-color: #c45c45;
+  border-color: #ff6b5b;
 }
 
 .player-card.host.connected {
-  border-color: #c45c45;
-  box-shadow: 0 0 15px rgba(196, 92, 69, 0.3);
+  border-color: #ff6b5b;
+  box-shadow: 0 0 15px rgba(255, 107, 91, 0.3);
+}
+
+.player-card.guest {
+  border-color: #6ab0ff;
+}
+
+.player-card.guest.connected {
+  border-color: #6ab0ff;
+  box-shadow: 0 0 15px rgba(106, 176, 255, 0.3);
 }
 
 .player-role {
@@ -354,13 +362,20 @@
 
 .player-name-tag {
   font-size: 1.1rem;
-  color: #d4c4a8;
   font-weight: bold;
   letter-spacing: 1px;
   max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.player-card.host .player-name-tag {
+  color: #ff6b5b;  /* Bright red - matches 3D name labels */
+}
+
+.player-card.guest .player-name-tag {
+  color: #6ab0ff;  /* Bright blue - matches 3D name labels */
 }
 
 .vs-text {

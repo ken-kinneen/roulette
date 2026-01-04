@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGLTF, useAnimations, Text } from '@react-three/drei';
+import { useGLTF, useAnimations, Text, Billboard } from '@react-three/drei';
 import { useGameStore } from '../../stores/gameStore';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
@@ -19,22 +19,31 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
   const playerName = useGameStore((state) => state.playerName);
   const opponentName = useGameStore((state) => state.opponentName);
 
-  // Determine the display name for this character
-  const displayName = useMemo(() => {
+  // Determine the display name and color for this character
+  // Red = player/host (you), Blue = opponent/AI
+  const { displayName, nameColor } = useMemo(() => {
     if (gameMode === 'solo') {
-      // Solo mode: player is "You" or their name, AI is "Vlad"
-      if (isPlayer) return playerName || 'You';
-      return 'Vlad';
+      // Solo mode: player is red, AI (Vlad) is blue
+      if (isPlayer) {
+        return { displayName: playerName || 'You', nameColor: '#ff6b5b' }; // Bright red
+      }
+      return { displayName: 'Vlad', nameColor: '#6ab0ff' }; // Bright blue
     }
     // PvP mode
     if (isHost) {
-      // Host perspective: player is host, AI character is guest (opponent)
-      if (isPlayer) return playerName || 'You';
-      return opponentName || 'Opponent';
+      // Host perspective: I am player (red), opponent is AI character (blue)
+      if (isPlayer) {
+        return { displayName: playerName || 'You', nameColor: '#ff6b5b' }; // Bright red
+      }
+      return { displayName: opponentName || 'Opponent', nameColor: '#6ab0ff' }; // Bright blue
     } else {
-      // Guest perspective: player is guest, AI character is host (opponent)
-      if (isPlayer) return playerName || 'You';
-      return opponentName || 'Opponent';
+      // Guest perspective: I am AI character (but I see myself as red), host is player (blue from my view)
+      if (isPlayer) {
+        // This is the host's character - blue from guest's perspective
+        return { displayName: opponentName || 'Opponent', nameColor: '#6ab0ff' }; // Bright blue
+      }
+      // This is me (guest) - red from my perspective
+      return { displayName: playerName || 'You', nameColor: '#ff6b5b' }; // Bright red
     }
   }, [gameMode, isHost, isPlayer, playerName, opponentName]);
   
@@ -293,27 +302,27 @@ export function Character({ position, rotation = [0, 0, 0], isPlayer = false, is
 
   return (
     <group ref={groupRef} position={position} scale={1.5} rotation={rotation}>
-      {/* Floating name label above head */}
+      {/* Floating name label above head - billboards to always face camera */}
       {showNameLabel && displayName && (
-        <Text
-          position={[0, 1.6, 0]}
-          rotation={isPlayer ? [0, 0, 0] : [0, Math.PI, 0]}
-          fontSize={0.12}
-          color="#d4c4a8"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.008}
-          outlineColor="#0a0806"
-          letterSpacing={0.08}
-        >
-          {displayName.toUpperCase()}
-        </Text>
+        <Billboard position={[0, 1.4, 0]} follow={true} lockX={false} lockY={false} lockZ={false}>
+          <Text
+            fontSize={0.065}
+            color={nameColor}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.005}
+            outlineColor="#0a0806"
+            letterSpacing={0.04}
+          >
+            {displayName.toUpperCase()}
+          </Text>
+        </Billboard>
       )}
 
       {/* Character model - positioned to sit on chair seat level */}
       <group
         position={isPlayer ? [0.03, -0.10, -0.0] : [0.02, 0.1, 0]}
-        scale={isPlayer ? 0.77 : 0.8}
+        scale={isPlayer ? 0.8 : 0.8}
       >
         <primitive object={clonedScene} />
       </group>

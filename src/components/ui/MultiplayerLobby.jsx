@@ -173,18 +173,18 @@ export function MultiplayerLobby() {
           </div>
         )}
 
-        {/* Join View */}
+        {/* Join View - From guest's perspective, they see themselves as "you" (left/red) */}
         {view === 'join' && (
           <div className="lobby-join">
             <div className="players-display">
-              <div className={`player-card host ${opponentConnected ? 'connected' : ''}`}>
-                <span className="player-role">HOST</span>
-                <span className="player-name-tag">{opponentConnected ? (opponentName || 'Host') : '???'}</span>
-              </div>
-              <span className="vs-text">VS</span>
-              <div className="player-card guest connected">
+              <div className="player-card host connected">
                 <span className="player-role">YOU</span>
                 <span className="player-name-tag">{playerName || 'Guest'}</span>
+              </div>
+              <span className="vs-text">VS</span>
+              <div className={`player-card guest ${opponentConnected ? 'connected' : ''}`}>
+                <span className="player-role">HOST</span>
+                <span className="player-name-tag">{opponentConnected ? (opponentName || 'Host') : '???'}</span>
               </div>
             </div>
 
